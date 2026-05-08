@@ -86,26 +86,26 @@ El modelo dimensional en la capa Gold sigue el **esquema estrella de Kimball**:
 
 | Herramienta | Versión | Rol |
 |-------------|---------|-----|
-| **Terraform** | `>= 1.5.0` | IaC — provisiona GCS buckets, datasets de BigQuery e IAM |
+| **Terraform** | `>= 1.15.2` | IaC — provisiona GCS buckets, datasets de BigQuery e IAM |
 | **Provider Google** | `~> 5.0` | Proveedor oficial de Terraform para GCP |
 
 ### Containerización
 
 | Herramienta | Versión | Rol |
 |-------------|---------|-----|
-| **Docker** | `>= 24.0` | Empaquetado de servicios (Spark, dbt, orquestador) |
-| **Docker Compose** | `>= 2.20` | Orquestación local multi-contenedor |
+| **Docker** | `>= 29.0` | Empaquetado de servicios (Spark, dbt, orquestador) |
+| **Docker Compose** | `>= 2.27` | Orquestación local multi-contenedor |
 
 ### Procesamiento & Transformación
 
 | Herramienta | Versión | Rol |
 |-------------|---------|-----|
-| **Python** | `3.11` | Scripts de ingesta, utilidades y DAGs |
-| **Apache Spark** | `3.5.x` | Procesamiento distribuido Bronze → Silver (lectura CSV, limpieza, escritura Parquet) |
-| **PySpark** | `3.5.x` | API Python para Spark |
+| **Python** | `3.10` | Scripts de ingesta, utilidades y DAGs |
+| **Apache Spark** | `3.5.1` | Procesamiento distribuido Bronze → Silver (lectura CSV, limpieza, escritura Parquet) |
+| **PySpark** | `3.5.1` | API Python para Spark |
 | **dbt (data build tool)** | `1.7.x` | Modelado SQL Silver → Gold (Staging, Intermediate, Marts) |
 | **dbt-bigquery** | `1.7.x` | Adaptador dbt para BigQuery |
-
+| **Java**|`Open JDK 17`|Runtime requerido por Apache Spark|
 ### Cloud & Almacenamiento
 
 | Servicio | Rol |
