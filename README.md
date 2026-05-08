@@ -23,9 +23,10 @@ Este proyecto aborda dicha problemática tomando como caso de estudio a **Olist*
 
 | # | Dimensión | Pregunta |
 |---|-----------|----------|
-| 1 | **Tendencias de ventas** | ¿Cómo fluctúan los volúmenes de órdenes a lo largo del tiempo en los distintos estados brasileños? |
-| 2 | **Eficiencia logística** | ¿Qué regiones concentran los mayores costos de flete en relación con sus tiempos de entrega? |
-| 3 | **Satisfacción del cliente** | ¿Cómo se distribuyen las puntuaciones de reseñas entre las categorías de productos más relevantes? |
+| 1 | **Sostenibilidad del ecosistema** | ¿Qué tan rentable y sostenible es el ecosistema Olist, considerando simultáneamente el volumen de ventas, la eficiencia de su cadena logística y el nivel de satisfacción que generan sus vendedores y categorías? |
+| 2 | **Revenue vs. Operaciones** | ¿En qué meses el crecimiento de revenue coexistió con un aumento en la tasa de retraso — y cuánto le costó eso en satisfacción? |
+| 3 | **Comportamiento de pago** | ¿El número de cuotas elegidas por el cliente predice el tamaño del ticket — y qué umbral de cuotas empieza a degradar la satisfacción? |
+| 4 | **Categorías críticas** | ¿Qué categorías son rentables pero logísticamente ineficientes — con alto rendimiento, alta tasa de retraso y score por debajo del promedio global? |
 
 ---
 
