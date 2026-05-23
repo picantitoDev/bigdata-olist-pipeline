@@ -77,7 +77,7 @@ resource "google_storage_bucket" "scripts" {
   name                        = "${var.project_id}-dataproc-scripts"
   project                     = var.project_id
   location                    = var.region
-  force_destroy               = false
+  force_destroy               = true
   uniform_bucket_level_access = true
 
   labels = {
