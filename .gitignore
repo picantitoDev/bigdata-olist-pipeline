@@ -39,3 +39,6 @@ secret*.tfvars
 
 # Kaggle
 .kaggle/
+
+# env vars
+.env
