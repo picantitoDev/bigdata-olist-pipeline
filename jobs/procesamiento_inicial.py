@@ -1,3 +1,4 @@
+from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType, DoubleType, StringType, TimestampType
 
@@ -9,7 +10,6 @@ GCS_RAW_BUCKET       = "gs://gbucket-495719-raw-prod"
 GCS_PROCESSED_BUCKET = "gs://gbucket-495719-processed-prod"
 
 if ENTORNO == "local":
-    from pyspark.sql import SparkSession
     spark = (
         SparkSession.builder
         .appName("OlistPreprocesamiento-Local")
@@ -21,6 +21,7 @@ if ENTORNO == "local":
     RAW_BASE       = LOCAL_RAW_PATH
     PROCESSED_BASE = LOCAL_PROCESSED_PATH
 else:
+    spark = SparkSession.builder.appName("OlistPreprocesamiento-GCP").getOrCreate()
     RAW_BASE       = f"{GCS_RAW_BUCKET}/brazilian_ecommerce"
     PROCESSED_BASE = f"{GCS_PROCESSED_BUCKET}/olist"
 
