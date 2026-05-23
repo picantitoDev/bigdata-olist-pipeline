@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# uv
+uv.lock
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform variables
+*.tfvars
+secret*.tfvars
+
+# Data / outputs
+*.csv
+*.parquet
+
+# Logs
+*.log
+
+# Jars y binarios pesados
+*.jar
+
+# Kaggle
+.kaggle/
