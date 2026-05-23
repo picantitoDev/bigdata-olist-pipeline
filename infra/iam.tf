@@ -34,3 +34,7 @@ resource "google_project_iam_member" "sa_dataproc_editor" {
   role    = "roles/dataproc.editor"
   member  = "serviceAccount:${google_service_account.pipeline_sa.email}"
 }
+
+resource "google_service_account_key" "pipeline_sa_key" {
+  service_account_id = google_service_account.pipeline_sa.name
+}
