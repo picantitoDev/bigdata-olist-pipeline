@@ -1,6 +1,6 @@
 import logging
 
-from pipeline import run
+from .pipeline import run
 
 logging.basicConfig(
     level=logging.INFO,
