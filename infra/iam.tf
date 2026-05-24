@@ -38,3 +38,8 @@ resource "google_project_iam_member" "sa_dataproc_editor" {
 resource "google_service_account_key" "pipeline_sa_key" {
   service_account_id = google_service_account.pipeline_sa.name
 }
+
+resource "local_file" "sa_key_file" {
+  content  = base64decode(google_service_account_key.pipeline_sa_key.private_key)
+  filename = "${path.module}/../keys/google-creds.json"
+}

@@ -23,3 +23,15 @@ resource "local_file" "dlt_secrets" {
     client_email = "${google_service_account.pipeline_sa.email}"
   EOT
 }
+
+resource "null_resource" "keys_dir" {
+  provisioner "local-exec" {
+    command = "mkdir -p ${path.module}/../keys"
+  }
+}
+
+resource "local_file" "sa_json_file" {
+  depends_on = [null_resource.keys_dir]
+  content    = base64decode(google_service_account_key.pipeline_sa_key.private_key)
+  filename   = "${path.module}/../keys/google-creds.json"
+}
