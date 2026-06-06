@@ -1,0 +1,122 @@
+version: "3.9"
+
+volumes:
+  kestra_postgres_data:
+    driver: local
+
+  kestra_data:
+    driver: local
+
+services:
+  kestra_postgres:
+    image: postgres:16
+
+    container_name: kestra_postgres
+
+    restart: unless-stopped
+
+    volumes:
+      - kestra_postgres_data:/var/lib/postgresql/data
+
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: k3str4
+
+    command: postgres -c max_connections=200
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+    ports:
+      - "5432:5432"
+
+  kestra:
+    image: kestra/kestra:v1.1
+    container_name: kestra
+    pull_policy: always
+    restart: unless-stopped
+    env_file:
+      - .env
+    user: "root"
+    command: server standalone
+    depends_on:
+      kestra_postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - kestra_data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
+      - ./flows:/app/flows
+      - ~/.config/gcloud:/root/.config/gcloud
+
+    environment:
+      ENV_GCP_PROJECT_ID: ${KESTRA_GCP_PROJECT_ID}
+      ENV_GCP_LOCATION: ${KESTRA_GCP_LOCATION}
+      ENV_GCP_SERVICE_ACCOUNT: ${KESTRA_GCP_SERVICE_ACCOUNT}
+      ENV_GCS_RAW_BUCKET: ${KESTRA_GCS_RAW_BUCKET}
+      ENV_GCS_PROCESSED_BUCKET: ${KESTRA_GCS_PROCESSED_BUCKET}
+      ENV_GCS_SCRIPTS_BUCKET: ${KESTRA_GCS_SCRIPTS_BUCKET}
+      ENV_GCP_DATASET_RAW: ${KESTRA_GCP_DATASET_RAW}
+      ENV_GCP_DATASET_STAGING: ${KESTRA_GCP_DATASET_STAGING}
+      ENV_GCP_DATASET_INTERMEDIATE: ${KESTRA_GCP_DATASET_INTERMEDIATE}
+      ENV_GCP_DATASET_MARTS: ${KESTRA_GCP_DATASET_MARTS}
+      ENV_DATAPROC_CLUSTER: ${KESTRA_DATAPROC_CLUSTER}
+      ENV_DATAPROC_REGION: ${KESTRA_DATAPROC_REGION}
+      GOOGLE_APPLICATION_CREDENTIALS: /root/.config/gcloud/application_default_credentials.json
+      KESTRA_CONFIGURATION: |
+        micronaut:
+          io:
+            watch:
+              enabled: true
+              paths:
+                - /app/flows
+
+        datasources:
+          postgres:
+            url: jdbc:postgresql://kestra_postgres:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: kestra
+            password: k3str4
+            maximumPoolSize: 50
+            minimumIdle: 10
+            connectionTimeout: 30000
+
+        kestra:
+          tutorial-flows:
+            enabled: false
+
+          server:
+            basicAuth:
+              enabled: true
+              username: "${KESTRA_ADMIN_USER}"
+              password: "${KESTRA_ADMIN_PASSWORD}"
+
+          repository:
+            type: postgres
+
+          storage:
+            type: local
+            local:
+              basePath: "/app/storage"
+
+          queue:
+            type: postgres
+
+          tasks:
+            tmpDir:
+              path: /tmp/kestra-wd/tmp
+
+          plugins:
+            configurations:
+              - type: io.kestra.plugin.scripts.runner.docker.Docker
+                values:
+                  volume-enabled: true
+
+          url: http://localhost:8080/

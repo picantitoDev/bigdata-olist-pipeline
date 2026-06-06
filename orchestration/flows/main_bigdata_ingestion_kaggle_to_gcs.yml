@@ -1,0 +1,29 @@
+id: ingestion_kaggle_to_gcs
+namespace: bigdata
+description: Run the dlt ingestion pipeline to load Olist data from Kaggle to GCS.
+
+tasks:
+  - id: run_pipeline
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+    containerImage: ghcr.io/picantitodev/dlt-ingestion:latest
+    inputFiles:
+      gcp-key.json: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    env:
+      DESTINATION__FILESYSTEM__BUCKET_URL: "gs://{{ kv('GCS_RAW_BUCKET') }}"
+    commands:
+      - |
+        set -e
+        export GOOGLE_APPLICATION_CREDENTIALS="$WORKING_DIR/gcp-key.json"
+
+        echo "--- Setting up Kaggle credentials ---"
+        mkdir -p ~/.kaggle
+        cat <<'EOF' > ~/.kaggle/kaggle.json
+        {"username":"{{ kv('KAGGLE_USERNAME') }}","key":"{{ kv('KAGGLE_API_TOKEN') }}"}
+        EOF
+        chmod 600 ~/.kaggle/kaggle.json
+
+        echo "--- Running dlt ingestion pipeline ---"
+        cd /app
+        python -m ingestion.main

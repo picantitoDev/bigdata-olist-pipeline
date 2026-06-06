@@ -1,0 +1,74 @@
+id: init_gcp_kv
+namespace: bigdata
+description: Initialize Google Cloud configuration values in Kestra KV store from environment variables.
+
+tasks:
+  # GCP Core
+  - id: gcp_project_id
+    type: io.kestra.plugin.core.kv.Set
+    key: GCP_PROJECT_ID
+    kvType: STRING
+    value: "{{ envs.gcp_project_id }}"
+
+  - id: gcp_location
+    type: io.kestra.plugin.core.kv.Set
+    key: GCP_LOCATION
+    kvType: STRING
+    value: "{{ envs.gcp_location }}"
+
+  # GCS Buckets
+  - id: gcs_raw_bucket
+    type: io.kestra.plugin.core.kv.Set
+    key: GCS_RAW_BUCKET
+    kvType: STRING
+    value: "{{ envs.gcs_raw_bucket }}"
+
+  - id: gcs_processed_bucket
+    type: io.kestra.plugin.core.kv.Set
+    key: GCS_PROCESSED_BUCKET
+    kvType: STRING
+    value: "{{ envs.gcs_processed_bucket }}"
+
+  - id: gcs_scripts_bucket
+    type: io.kestra.plugin.core.kv.Set
+    key: GCS_SCRIPTS_BUCKET
+    kvType: STRING
+    value: "{{ envs.gcs_scripts_bucket }}"
+
+  # BigQuery Datasets
+  - id: gcp_dataset_raw
+    type: io.kestra.plugin.core.kv.Set
+    key: GCP_DATASET_RAW
+    kvType: STRING
+    value: "{{ envs.gcp_dataset_raw }}"
+
+  - id: gcp_dataset_staging
+    type: io.kestra.plugin.core.kv.Set
+    key: GCP_DATASET_STAGING
+    kvType: STRING
+    value: "{{ envs.gcp_dataset_staging }}"
+
+  - id: gcp_dataset_intermediate
+    type: io.kestra.plugin.core.kv.Set
+    key: GCP_DATASET_INTERMEDIATE
+    kvType: STRING
+    value: "{{ envs.gcp_dataset_intermediate }}"
+
+  - id: gcp_dataset_marts
+    type: io.kestra.plugin.core.kv.Set
+    key: GCP_DATASET_MARTS
+    kvType: STRING
+    value: "{{ envs.gcp_dataset_marts }}"
+
+  # Dataproc
+  - id: dataproc_cluster
+    type: io.kestra.plugin.core.kv.Set
+    key: DATAPROC_CLUSTER
+    kvType: STRING
+    value: "{{ envs.dataproc_cluster }}"
+
+  - id: dataproc_region
+    type: io.kestra.plugin.core.kv.Set
+    key: DATAPROC_REGION
+    kvType: STRING
+    value: "{{ envs.dataproc_region }}"
