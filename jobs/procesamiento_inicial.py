@@ -1,52 +1,53 @@
-from pyspark.sql import SparkSession
+"""
+Procesamiento inicial del dataset Olist en Dataproc.
+
+Lee parquet crudo desde el bucket raw, aplica limpieza y tipado,
+y escribe los resultados particionados al bucket processed.
+"""
+
+import argparse
+import logging
+
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import IntegerType, DoubleType, StringType, TimestampType
+from pyspark.sql.types import DoubleType, IntegerType, StringType
 
-ENTORNO = "gcp"
-
-LOCAL_RAW_PATH       = "./data/olist_raw"
-LOCAL_PROCESSED_PATH = "./data/olist_processed"
-GCS_RAW_BUCKET       = "gs://gbucket-495719-raw-prod"
-GCS_PROCESSED_BUCKET = "gs://gbucket-495719-processed-prod"
-
-if ENTORNO == "local":
-    spark = (
-        SparkSession.builder
-        .appName("OlistPreprocesamiento-Local")
-        .master("local[*]")
-        .config("spark.driver.memory", "4g")
-        .getOrCreate()
-    )
-    spark.sparkContext.setLogLevel("WARN")
-    RAW_BASE       = LOCAL_RAW_PATH
-    PROCESSED_BASE = LOCAL_PROCESSED_PATH
-else:
-    spark = SparkSession.builder.appName("OlistPreprocesamiento-GCP").getOrCreate()
-    RAW_BASE       = f"{GCS_RAW_BUCKET}/brazilian_ecommerce"
-    PROCESSED_BASE = f"{GCS_PROCESSED_BUCKET}/olist"
+log = logging.getLogger(__name__)
 
 
-def leer_tabla(nombre_carpeta: str):
-    ruta = f"{RAW_BASE}/{nombre_carpeta}/"
-    return spark.read.parquet(ruta)
+# Configuración
 
-def columnas_negocio(df):
-    cols_utiles = [c for c in df.columns if not c.startswith("_dlt")]
-    return df.select(cols_utiles)
-
-
-df_orders     = columnas_negocio(leer_tabla("orders"))
-df_items      = columnas_negocio(leer_tabla("order_items"))
-df_payments   = columnas_negocio(leer_tabla("order_payments"))
-df_reviews    = columnas_negocio(leer_tabla("order_reviews"))
-df_customers  = columnas_negocio(leer_tabla("customers"))
-df_sellers    = columnas_negocio(leer_tabla("sellers"))
-df_products   = columnas_negocio(leer_tabla("products"))
-df_geo        = columnas_negocio(leer_tabla("geolocation"))
-df_categories = columnas_negocio(leer_tabla("product_category_name_translation"))
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Olist raw → processed preprocessing")
+    parser.add_argument("--gcs-raw-bucket",       required=True, help="Nombre del bucket raw (sin gs://)")
+    parser.add_argument("--gcs-processed-bucket", required=True, help="Nombre del bucket processed (sin gs://)")
+    parser.add_argument("--raw-prefix",           default="brazilian_ecommerce", help="Prefijo dentro del bucket raw")
+    parser.add_argument("--processed-prefix",     default="olist",               help="Prefijo dentro del bucket processed")
+    return parser.parse_args()
 
 
-def preprocess_orders(df):
+# Helpers de IO
+
+def leer_tabla(spark: SparkSession, raw_base: str, nombre_carpeta: str) -> DataFrame:
+    return spark.read.parquet(f"{raw_base}/{nombre_carpeta}/")
+
+
+def columnas_negocio(df: DataFrame) -> DataFrame:
+    return df.select([c for c in df.columns if not c.startswith("_dlt")])
+
+
+def escribir_processed(df: DataFrame, processed_base: str, nombre_tabla: str, particion: str | None = None) -> None:
+    ruta = f"{processed_base}/{nombre_tabla}/"
+    writer = df.write.mode("overwrite").option("compression", "snappy")
+    if particion:
+        writer = writer.partitionBy(particion)
+    writer.parquet(ruta)
+    log.info("Escrito: %s", ruta)
+
+
+# Transformaciones por tabla
+
+def preprocess_orders(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("order_purchase_timestamp",      F.to_timestamp("order_purchase_timestamp"))
@@ -61,7 +62,8 @@ def preprocess_orders(df):
         .withColumn("processed_at",                  F.current_timestamp())
     )
 
-def preprocess_order_items(df):
+
+def preprocess_order_items(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("order_id",            F.lower(F.col("order_id")))
@@ -74,7 +76,8 @@ def preprocess_order_items(df):
         .withColumn("processed_at",        F.current_timestamp())
     )
 
-def preprocess_payments(df):
+
+def preprocess_payments(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("order_id",             F.lower(F.col("order_id")))
@@ -85,7 +88,8 @@ def preprocess_payments(df):
         .withColumn("processed_at",         F.current_timestamp())
     )
 
-def preprocess_reviews(df):
+
+def preprocess_reviews(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("review_id",               F.lower(F.col("review_id")))
@@ -99,7 +103,8 @@ def preprocess_reviews(df):
         .withColumn("processed_at",            F.current_timestamp())
     )
 
-def preprocess_customers(df):
+
+def preprocess_customers(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("customer_id",              F.lower(F.col("customer_id")))
@@ -110,7 +115,8 @@ def preprocess_customers(df):
         .withColumn("processed_at",             F.current_timestamp())
     )
 
-def preprocess_sellers(df):
+
+def preprocess_sellers(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("seller_id",              F.lower(F.col("seller_id")))
@@ -120,7 +126,8 @@ def preprocess_sellers(df):
         .withColumn("processed_at",           F.current_timestamp())
     )
 
-def preprocess_products(df):
+
+def preprocess_products(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("product_id",                 F.lower(F.col("product_id")))
@@ -135,7 +142,8 @@ def preprocess_products(df):
         .withColumn("processed_at",               F.current_timestamp())
     )
 
-def preprocess_geolocation(df):
+
+def preprocess_geolocation(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("geolocation_zip_code_prefix", F.lpad(F.col("geolocation_zip_code_prefix").cast(StringType()), 5, "0"))
@@ -151,7 +159,8 @@ def preprocess_geolocation(df):
         .withColumn("processed_at", F.current_timestamp())
     )
 
-def preprocess_categories(df):
+
+def preprocess_categories(df: DataFrame) -> DataFrame:
     return (
         df
         .withColumn("product_category_name",         F.trim(F.col("product_category_name")))
@@ -160,31 +169,60 @@ def preprocess_categories(df):
     )
 
 
-df_orders_p     = preprocess_orders(df_orders)
-df_items_p      = preprocess_order_items(df_items)
-df_payments_p   = preprocess_payments(df_payments)
-df_reviews_p    = preprocess_reviews(df_reviews)
-df_customers_p  = preprocess_customers(df_customers)
-df_sellers_p    = preprocess_sellers(df_sellers)
-df_products_p   = preprocess_products(df_products)
-df_geo_p        = preprocess_geolocation(df_geo)
-df_categories_p = preprocess_categories(df_categories)
+# Pipeline
+
+def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s  %(levelname)-8s  %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    args = parse_args()
+
+    raw_base       = f"gs://{args.gcs_raw_bucket}/{args.raw_prefix}"
+    processed_base = f"gs://{args.gcs_processed_bucket}/{args.processed_prefix}"
+
+    log.info("Raw base:       %s", raw_base)
+    log.info("Processed base: %s", processed_base)
+
+    spark = SparkSession.builder.appName("OlistPreprocesamiento").getOrCreate()
+
+    df_orders     = columnas_negocio(leer_tabla(spark, raw_base, "orders"))
+    df_items      = columnas_negocio(leer_tabla(spark, raw_base, "order_items"))
+    df_payments   = columnas_negocio(leer_tabla(spark, raw_base, "order_payments"))
+    df_reviews    = columnas_negocio(leer_tabla(spark, raw_base, "order_reviews"))
+    df_customers  = columnas_negocio(leer_tabla(spark, raw_base, "customers"))
+    df_sellers    = columnas_negocio(leer_tabla(spark, raw_base, "sellers"))
+    df_products   = columnas_negocio(leer_tabla(spark, raw_base, "products"))
+    df_geo        = columnas_negocio(leer_tabla(spark, raw_base, "geolocation"))
+    df_categories = columnas_negocio(leer_tabla(spark, raw_base, "product_category_name_translation"))
+
+    log.info("Aplicando transformaciones")
+    df_orders_p     = preprocess_orders(df_orders)
+    df_items_p      = preprocess_order_items(df_items)
+    df_payments_p   = preprocess_payments(df_payments)
+    df_reviews_p    = preprocess_reviews(df_reviews)
+    df_customers_p  = preprocess_customers(df_customers)
+    df_sellers_p    = preprocess_sellers(df_sellers)
+    df_products_p   = preprocess_products(df_products)
+    df_geo_p        = preprocess_geolocation(df_geo)
+    df_categories_p = preprocess_categories(df_categories)
+
+    log.info("Escribiendo resultados a %s", processed_base)
+    escribir_processed(df_orders_p,     processed_base, "orders",                            particion="order_purchase_year_month")
+    escribir_processed(df_items_p,      processed_base, "order_items")
+    escribir_processed(df_payments_p,   processed_base, "order_payments")
+    escribir_processed(df_reviews_p,    processed_base, "order_reviews",                     particion="review_year_month")
+    escribir_processed(df_customers_p,  processed_base, "customers")
+    escribir_processed(df_sellers_p,    processed_base, "sellers")
+    escribir_processed(df_products_p,   processed_base, "products")
+    escribir_processed(df_geo_p,        processed_base, "geolocation",                       particion="geolocation_state")
+    escribir_processed(df_categories_p, processed_base, "product_category_name_translation")
+
+    log.info("Pipeline completado")
+    spark.stop()
 
 
-def escribir_processed(df, nombre_tabla: str, particion: str = None):
-    ruta = f"{PROCESSED_BASE}/{nombre_tabla}/"
-    writer = df.write.mode("overwrite").option("compression", "snappy")
-    if particion:
-        writer = writer.partitionBy(particion)
-    writer.parquet(ruta)
-
-
-escribir_processed(df_orders_p,     "orders",                            particion="order_purchase_year_month")
-escribir_processed(df_items_p,      "order_items")
-escribir_processed(df_payments_p,   "order_payments")
-escribir_processed(df_reviews_p,    "order_reviews",                     particion="review_year_month")
-escribir_processed(df_customers_p,  "customers")
-escribir_processed(df_sellers_p,    "sellers")
-escribir_processed(df_products_p,   "products")
-escribir_processed(df_geo_p,        "geolocation",                       particion="geolocation_state")
-escribir_processed(df_categories_p, "product_category_name_translation")
+if __name__ == "__main__":
+    main()

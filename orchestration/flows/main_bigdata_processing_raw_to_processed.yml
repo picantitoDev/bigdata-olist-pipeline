@@ -1,0 +1,25 @@
+id: processing_raw_to_processed
+namespace: bigdata
+description: Submit PySpark job to Dataproc.
+
+tasks:
+  - id: submit_spark_job
+    type: io.kestra.plugin.scripts.shell.Commands
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+    containerImage: google/cloud-sdk:slim
+    inputFiles:
+      gcp-key.json: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    beforeCommands:
+      - gcloud auth activate-service-account
+        --key-file=$WORKING_DIR/gcp-key.json
+        --project={{ kv('GCP_PROJECT_ID') }}
+    commands:
+      - gcloud dataproc jobs submit pyspark
+        gs://{{ kv('GCS_SCRIPTS_BUCKET') }}/jobs/procesamiento_inicial.py
+        --cluster={{ kv('DATAPROC_CLUSTER') }}
+        --region={{ kv('DATAPROC_REGION') }}
+        --project={{ kv('GCP_PROJECT_ID') }}
+        --
+        --gcs-raw-bucket       {{ kv('GCS_RAW_BUCKET') }}
+        --gcs-processed-bucket {{ kv('GCS_PROCESSED_BUCKET') }}

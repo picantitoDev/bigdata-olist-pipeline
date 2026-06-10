@@ -92,3 +92,9 @@ resource "google_storage_bucket_object" "bootstrap_script" {
   bucket = google_storage_bucket.scripts.name
   source = "../scripts/bootstrap.sh"
 }
+
+resource "google_storage_bucket_object" "preprocessing_script" {
+  name   = "jobs/procesamiento_inicial.py"
+  bucket = google_storage_bucket.scripts.name
+  source = "../jobs/procesamiento_inicial.py"
+}
