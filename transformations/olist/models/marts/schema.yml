@@ -1,0 +1,150 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: Customer dimension with geographic coordinates.
+    columns:
+      - name: customer_key
+        description: Surrogate key.
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Natural key from the source.
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_unique_id
+        description: Stable cross-order customer identifier.
+        data_tests:
+          - not_null
+
+  - name: dim_sellers
+    description: Seller dimension with geographic coordinates.
+    columns:
+      - name: seller_key
+        description: Surrogate key.
+        data_tests:
+          - unique
+          - not_null
+      - name: seller_id
+        description: Natural key from the source.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_products
+    description: Product dimension with English category and derived volume.
+    columns:
+      - name: product_key
+        description: Surrogate key.
+        data_tests:
+          - unique
+          - not_null
+      - name: product_id
+        description: Natural key from the source.
+        data_tests:
+          - unique
+          - not_null
+      - name: product_category
+        description: Category name in English, falling back to Portuguese.
+
+  - name: dim_orders
+    description: Order dimension with status, timestamps, and delivery metrics.
+    columns:
+      - name: order_key
+        description: Surrogate key.
+        data_tests:
+          - unique
+          - not_null
+      - name: order_id
+        description: Natural key from the source.
+        data_tests:
+          - unique
+          - not_null
+      - name: is_delivered_on_time
+        description: True when delivered on or before estimate.
+
+  - name: dim_dates
+    description: Generated calendar dimension covering the dataset window.
+    columns:
+      - name: date_key
+        description: Date primary key.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: fct_order_items
+    description: Sales fact at order-item grain with measures price, freight, and total.
+    columns:
+      - name: order_item_key
+        description: Surrogate key at order_id + order_item_id grain.
+        data_tests:
+          - unique
+          - not_null
+      - name: order_key
+        description: Foreign key to dim_orders.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_orders')
+              field: order_key
+      - name: product_key
+        description: Foreign key to dim_products.
+        data_tests:
+          - relationships:
+              to: ref('dim_products')
+              field: product_key
+      - name: seller_key
+        description: Foreign key to dim_sellers.
+        data_tests:
+          - relationships:
+              to: ref('dim_sellers')
+              field: seller_key
+      - name: customer_key
+        description: Foreign key to dim_customers.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_key
+      - name: price
+        description: Item price in BRL.
+        data_tests:
+          - not_null
+
+  - name: fct_payments
+    description: Payments fact at payment-sequential grain.
+    columns:
+      - name: payment_key
+        description: Surrogate key at order_id + payment_sequential grain.
+        data_tests:
+          - unique
+          - not_null
+      - name: order_key
+        description: Foreign key to dim_orders.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_orders')
+              field: order_key
+      - name: payment_value
+        description: Amount paid in BRL.
+        data_tests:
+          - not_null
+
+  - name: fct_order_reviews
+    description: Reviews fact at one-row-per-order grain.
+    columns:
+      - name: review_key
+        description: Surrogate key of the review. Not unique because one review can span multiple orders in the source.
+        data_tests:
+          - not_null
+      - name: order_key
+        description: Primary key at order grain; foreign key to dim_orders.
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_orders')
+              field: order_key

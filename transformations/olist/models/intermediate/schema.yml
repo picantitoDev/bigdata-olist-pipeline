@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: int_orders_delivery_metrics
+    description: Orders enriched with delivery-time and on-time-performance calculations.
+    columns:
+      - name: order_id
+        description: Primary key of the order.
+        data_tests:
+          - unique
+          - not_null
+      - name: delivery_days
+        description: Calendar days between purchase and customer delivery.
+      - name: is_delivered_on_time
+        description: True when delivered on or before the estimated date, null if undelivered.
+
+  - name: int_order_payments_aggregated
+    description: Payments rolled up to one row per order.
+    columns:
+      - name: order_id
+        description: Primary key of the order.
+        data_tests:
+          - unique
+          - not_null
+      - name: total_payment_value
+        description: Sum of all payment values for the order in BRL.
+        data_tests:
+          - not_null
+
+  - name: int_reviews_deduplicated
+    description: One review per order, keeping the most recent.
+    columns:
+      - name: order_id
+        description: Primary key after deduplication.
+        data_tests:
+          - unique
+          - not_null
+      - name: review_score
+        description: Satisfaction score from 1 to 5.
+        data_tests:
+          - not_null

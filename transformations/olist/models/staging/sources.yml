@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: olist
+    description: Raw Olist Brazilian e-commerce data loaded as dbt seeds for local development.
+    schema: main
+    tables:
+      - name: olist_customers_dataset
+        description: One row per customer order-instance; customer_unique_id identifies the real person.
+      - name: olist_geolocation_dataset
+        description: Latitude/longitude points keyed by zip code prefix. Contains multiple rows per prefix.
+      - name: olist_order_items_dataset
+        description: One row per item within an order. Grain is order_id + order_item_id.
+      - name: olist_order_payments_dataset
+        description: Payment records per order, one row per payment sequential.
+      - name: olist_order_reviews_dataset
+        description: Customer reviews submitted after order delivery, one row per review.
+      - name: olist_orders_dataset
+        description: Order headers with status and delivery lifecycle timestamps.
+      - name: olist_products_dataset
+        description: Product attributes including category, dimensions, and weight.
+      - name: olist_sellers_dataset
+        description: Seller registry with location by zip code prefix.
+      - name: product_category_name_translation
+        description: Lookup mapping Portuguese category names to English.

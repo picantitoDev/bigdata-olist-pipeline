@@ -1,0 +1,139 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: Cleaned customer records, one row per customer order-instance.
+    columns:
+      - name: customer_id
+        description: Unique key for a customer's appearance on a single order.
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_unique_id
+        description: Stable identifier for the real customer across orders.
+        data_tests:
+          - not_null
+      - name: customer_zip_code_prefix
+        description: Five-digit zip code prefix.
+      - name: customer_state
+        description: Two-letter Brazilian state code.
+
+  - name: stg_geolocation
+    description: One representative lat/lng point per zip code prefix.
+    columns:
+      - name: zip_code_prefix
+        description: Five-digit zip code prefix.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_order_items
+    description: Typed order line items at order_id + order_item_id grain.
+    columns:
+      - name: order_id
+        description: Foreign key to stg_orders.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      - name: product_id
+        description: Foreign key to stg_products.
+        data_tests:
+          - not_null
+      - name: seller_id
+        description: Foreign key to stg_sellers.
+        data_tests:
+          - not_null
+      - name: price
+        description: Item price in BRL.
+        data_tests:
+          - not_null
+      - name: freight_value
+        description: Shipping cost allocated to the item in BRL.
+
+  - name: stg_order_payments
+    description: Typed payment records at order_id + payment_sequential grain.
+    columns:
+      - name: order_id
+        description: Foreign key to stg_orders.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_orders')
+              field: order_id
+      - name: payment_type
+        description: Payment method used.
+        data_tests:
+          - accepted_values:
+              values: ['credit_card', 'boleto', 'voucher', 'debit_card', 'not_defined']
+      - name: payment_value
+        description: Amount paid in BRL.
+        data_tests:
+          - not_null
+
+  - name: stg_order_reviews
+    description: Typed customer reviews, one row per review_id.
+    columns:
+      - name: review_id
+        description: Review identifier. Not globally unique due to source duplicates.
+        data_tests:
+          - not_null
+      - name: order_id
+        description: Foreign key to stg_orders.
+        data_tests:
+          - not_null
+      - name: review_score
+        description: Satisfaction score from 1 to 5.
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5]
+
+  - name: stg_orders
+    description: Typed order headers with lifecycle timestamps.
+    columns:
+      - name: order_id
+        description: Primary key of the order.
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: Foreign key to stg_customers.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: order_status
+        description: Current status of the order.
+        data_tests:
+          - accepted_values:
+              values: ['delivered', 'shipped', 'canceled', 'unavailable', 'invoiced', 'processing', 'created', 'approved']
+
+  - name: stg_products
+    description: Typed product attributes with corrected column names.
+    columns:
+      - name: product_id
+        description: Primary key of the product.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_sellers
+    description: Cleaned seller registry.
+    columns:
+      - name: seller_id
+        description: Primary key of the seller.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_product_category_translation
+    description: Portuguese-to-English category name lookup.
+    columns:
+      - name: product_category_name
+        description: Category name in Portuguese.
+        data_tests:
+          - unique
+          - not_null
