@@ -217,7 +217,7 @@ def main() -> None:
     escribir_processed(df_customers_p,  processed_base, "customers")
     escribir_processed(df_sellers_p,    processed_base, "sellers")
     escribir_processed(df_products_p,   processed_base, "products")
-    escribir_processed(df_geo_p,        processed_base, "geolocation",                       particion="geolocation_state")
+    escribir_processed(df_geo_p,        processed_base, "geolocation")
     escribir_processed(df_categories_p, processed_base, "product_category_name_translation")
 
     log.info("Pipeline completado")
