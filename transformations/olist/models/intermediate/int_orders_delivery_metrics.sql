@@ -13,11 +13,9 @@ metrics as (
         order_delivered_customer_date,
         order_estimated_delivery_date,
 
-        datediff('day', order_purchase_timestamp, order_delivered_customer_date)
-            as delivery_days,
+        {{ dbt.datediff('order_purchase_timestamp', 'order_delivered_customer_date', 'day') }} as delivery_days,
 
-        datediff('day', order_estimated_delivery_date, order_delivered_customer_date)
-            as delivery_vs_estimate_days,
+        {{ dbt.datediff('order_estimated_delivery_date', 'order_delivered_customer_date', 'day') }} as delivery_vs_estimate_days,
 
         case
             when order_delivered_customer_date is null then null
