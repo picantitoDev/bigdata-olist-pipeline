@@ -10,7 +10,7 @@ deduplicated as (
         max(trim(lower(geolocation_city))) as city,
         max(upper(trim(geolocation_state))) as state
     from source
-    group by 1
+    group by lpad(cast(geolocation_zip_code_prefix as string), 5, '0')
 )
 
 select * from deduplicated
