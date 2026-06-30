@@ -19,7 +19,10 @@ models:
   olist:
     staging:
       +materialized: view
+      +schema: olist_staging
     intermediate:
       +materialized: view
+      +schema: olist_intermediate
     marts:
       +materialized: table
+      +schema: olist_marts
