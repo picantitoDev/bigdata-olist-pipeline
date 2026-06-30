@@ -2,8 +2,8 @@ version: 2
 
 sources:
   - name: olist
-    description: Raw Olist Brazilian e-commerce data loaded as dbt seeds for local development.
-    schema: main
+    description: Raw Olist data, either DuckDB seeds locally or BigQuery external tables in production.
+    schema: "{{ 'olist_raw' if target.type == 'bigquery' else 'main' }}"
     tables:
       - name: olist_customers_dataset
         description: One row per customer order-instance; customer_unique_id identifies the real person.
