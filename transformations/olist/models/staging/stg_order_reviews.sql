@@ -6,7 +6,7 @@ renamed as (
     select
         review_id,
         order_id,
-        cast(review_score as integer) as review_score,
+        cast(review_score as int64) as review_score,
         nullif(trim(review_comment_title), '') as review_comment_title,
         nullif(trim(review_comment_message), '') as review_comment_message,
         cast(review_creation_date as timestamp) as review_creation_date,
