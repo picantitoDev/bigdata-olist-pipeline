@@ -10,6 +10,9 @@ __pycache__/
 venv/
 env/
 
+#dlt
+.dlt
+
 # uv
 uv.lock
 
@@ -52,3 +55,9 @@ dbt_packages/
 logs/
 *.duckdb
 seeds/*.csv
+
+#streamlit
+.streamlit
+
+#secrets
+.env
