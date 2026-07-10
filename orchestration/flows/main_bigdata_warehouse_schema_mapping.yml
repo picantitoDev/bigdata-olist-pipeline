@@ -1,0 +1,31 @@
+id: warehouse_schema_mapping
+namespace: bigdata
+description: Create or replace BigQuery external tables from Parquet files in the processed GCS bucket.
+
+tasks:
+  - id: create_bigquery_external_tables
+    type: io.kestra.plugin.gcp.bigquery.Query
+    projectId: "{{ kv('GCP_PROJECT_ID') }}"
+    serviceAccount: "{{ secret('GCP_SERVICE_ACCOUNT') }}"
+    sql: |
+      {% set tables = [
+        "customers",
+        "geolocation",
+        "order_items",
+        "order_payments",
+        "order_reviews",
+        "orders",
+        "product_category_name_translation",
+        "products",
+        "sellers"
+      ] %}
+      {% for table in tables %}
+      CREATE OR REPLACE EXTERNAL TABLE
+      `{{ kv('GCP_PROJECT_ID') }}.{{ kv('GCP_DATASET_RAW') }}.ext_{{ table }}`
+      OPTIONS (
+        format = 'PARQUET',
+        uris = [
+          'gs://{{ kv('GCS_PROCESSED_BUCKET') }}/olist/{{ table }}/*.parquet'
+        ]
+      );
+      {% endfor %}
