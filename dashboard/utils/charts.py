@@ -312,6 +312,11 @@ def segment_scatter_3d(df, title):
     )
     fig.update_traces(marker=dict(size=3))
     layout = {**layout_dict(), "height": 620}
+    # BUG: layout_dict() solo trae "title_font" (fuente del título), nunca el
+    # texto. Sin "text" explícito, Plotly.js muestra literalmente "undefined"
+    # arriba a la izquierda. Se fija el texto real acá para evitarlo.
+    layout.pop("title_font", None)
+    layout["title"] = dict(text=title or "", font=dict(size=17, color=p["title_color"]))
     layout["legend"] = dict(
         orientation="h", yanchor="bottom", y=0.0,
         font=dict(size=13, color=p["font_color"]), bgcolor="rgba(0,0,0,0)",
