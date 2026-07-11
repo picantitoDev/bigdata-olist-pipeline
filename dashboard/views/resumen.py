@@ -19,15 +19,20 @@ st.caption("E-commerce brasileño · dlt → Spark → BigQuery → dbt")
 kpis = run_query(KPIS_GLOBALES)
 nps = run_query(NPS_APROXIMADO)
 
-c1, c2, c3, c4, c5, c6 = st.columns(6)
-c1.metric("Ingresos totales",   fmt_money(kpis["total_revenue"][0]))
-c2.metric("Pedidos totales",    f"{kpis['total_orders'][0]:,}")
-c3.metric("Clientes únicos",    f"{kpis['total_customers'][0]:,}")
-c4.metric("Ticket promedio",    f"R$ {kpis['avg_order_value'][0]:,.2f}")
-c5.metric("Tasa de recompra",   f"{kpis['tasa_recompra'][0]}%",
-          help="Porcentaje de clientes que hicieron 2 o más pedidos")
-c6.metric("Reseñas positivas",  f"{nps['pct_positive'][0]}%",
-          help="Porcentaje de reseñas con puntaje 4 o 5")
+c1, c2, c3, c4, c5, c6 = st.columns(5)
+c1.metric("Ingresos totales", fmt_money(kpis["total_revenue"][0]))
+c2.metric("Pedidos totales", f"{kpis['total_orders'][0]:,}")
+c3.metric("Ticket promedio", f"R$ {kpis['avg_order_value'][0]:,.2f}")
+c4.metric(
+    "Tasa de recompra",
+    f"{kpis['tasa_recompra'][0]}%",
+    help="Porcentaje de clientes que hicieron 2 o más pedidos",
+)
+c5.metric(
+    "Reseñas positivas",
+    f"{nps['pct_positive'][0]}%",
+    help="Porcentaje de reseñas con puntaje 4 o 5",
+)
 
 st.divider()
 
