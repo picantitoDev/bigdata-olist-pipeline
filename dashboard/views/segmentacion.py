@@ -7,7 +7,6 @@ from utils.queries import RFM_BASE
 from utils.ml import segment_customers, SEGMENT_ACTIONS
 from utils.charts import segment_scatter_3d
 
-st.set_page_config(page_title="Segmentación IA", page_icon="🤖", layout="wide")
 st.title("🤖 Segmentación de Clientes con IA")
 
 st.markdown(

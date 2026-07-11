@@ -2,7 +2,6 @@
 
 import streamlit as st
 
-st.set_page_config(page_title="Arquitectura", page_icon="🏗️", layout="wide")
 st.title("🏗️ Arquitectura del Pipeline ELT")
 
 # ------------------------------------------------------------------ Diagrama

@@ -8,16 +8,18 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # ------------------------------------------------------------------ Paleta
-PRIMARY   = "#00D4FF"   # cian eléctrico
-ACCENT    = "#FFC947"   # ámbar
-POSITIVE  = "#00E676"   # verde neón
-NEGATIVE  = "#FF5252"   # rojo coral
-PURPLE    = "#B388FF"
+# Paleta única del proyecto: minimalista, violeta como identidad,
+# rosa como acento, verde/rojo reservados para semántica (bien/mal).
+PRIMARY   = "#7C6FE8"   # violeta — color de marca, series principales
+ACCENT    = "#F06292"   # rosa — series secundarias / destacar
+POSITIVE  = "#22C55E"   # verde — solo semántica positiva
+NEGATIVE  = "#EF4444"   # rojo — solo semántica negativa
+NEUTRAL   = "#64748B"   # gris azulado — contexto / referencias
+PURPLE    = PRIMARY     # alias retrocompatible
 
-QUALITATIVE = ["#00D4FF", "#FFC947", "#FF5252", "#00E676", "#B388FF",
-               "#FF8A65", "#4DD0E1", "#F06292"]
+QUALITATIVE = [PRIMARY, ACCENT, "#38BDF8", "#F59E0B", "#22C55E", "#A78BFA"]
 
-SEQUENTIAL = [[0.0, "#0D2137"], [0.35, "#1B6CA8"], [0.7, "#00D4FF"], [1.0, "#B2F7FF"]]
+SEQUENTIAL = [[0.0, "#211D3D"], [0.5, "#5B4FC4"], [1.0, "#C4BBFF"]]
 
 DARK_LAYOUT = dict(
     template="plotly_dark",
@@ -67,6 +69,15 @@ LABELS = {
     "monetary": "Valor monetario (R$)",
     "segment_name": "Segmento",
 }
+
+
+def fmt_money(v: float) -> str:
+    """R$ con escala adaptativa: evita '0.0M' en montos chicos."""
+    if v >= 1e6:
+        return f"R$ {v/1e6:,.1f}M"
+    if v >= 1e3:
+        return f"R$ {v/1e3:,.0f}K"
+    return f"R$ {v:,.2f}"
 
 
 def _apply(fig, height=420):
@@ -175,4 +186,115 @@ def segment_scatter_3d(df, title):
         ),
     }
     fig.update_layout(**layout)
+    return fig
+
+
+# ==================================================================
+# COMPONENTES ADICIONALES (refactor visual)
+# ==================================================================
+
+from plotly.subplots import make_subplots
+
+
+def _merged_layout(**overrides):
+    return {**DARK_LAYOUT, **overrides}
+
+
+def donut(labels, values, title, colors=None, center_text=None):
+    fig = go.Figure(go.Pie(
+        labels=labels, values=values, hole=0.62,
+        marker=dict(colors=colors or [PRIMARY, NEGATIVE],
+                    line=dict(color="#0E1117", width=2)),
+        textinfo="label+percent", textfont_size=13,
+    ))
+    if center_text:
+        fig.add_annotation(text=center_text, showarrow=False,
+                           font=dict(size=22, color="#FFFFFF"))
+    fig.update_layout(**_merged_layout(
+        title=title, height=380, showlegend=False,
+    ))
+    return fig
+
+
+def ranking_hbar(df, x, y, title, pct_col=None, color=PRIMARY, height=None):
+    """Ranking horizontal: barras un solo tono + valor y % como texto."""
+    d = df.sort_values(x)
+    text = d[x].apply(lambda v: f"{v:,.0f}")
+    if pct_col is not None:
+        text = text + "  ·  " + d[pct_col].apply(lambda v: f"{v:.1f}%")
+    fig = go.Figure(go.Bar(
+        x=d[x], y=d[y], orientation="h",
+        marker=dict(color=color, line=dict(width=0)),
+        text=text, textposition="outside", cliponaxis=False,
+        textfont=dict(size=12),
+    ))
+    fig.update_layout(**_merged_layout(
+        title=title,
+        height=height or max(320, 34 * len(d) + 90),
+        xaxis=dict(**GRID, title=LABELS.get(x, x)),
+        yaxis=dict(dtick=1, title=None),
+        margin=dict(l=10, r=90, t=60, b=10),
+    ))
+    return fig
+
+
+def dual_line(df, x, y1, y2, title, y1_label, y2_label):
+    """Dos series con ejes independientes (ej. % tardías vs días)."""
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Scatter(
+        x=df[x], y=df[y1], name=y1_label, mode="lines+markers",
+        line=dict(color=NEGATIVE, width=3), marker=dict(size=6),
+    ), secondary_y=False)
+    fig.add_trace(go.Scatter(
+        x=df[x], y=df[y2], name=y2_label, mode="lines+markers",
+        line=dict(color=PRIMARY, width=2, dash="dot"), marker=dict(size=5),
+    ), secondary_y=True)
+    fig.update_layout(**_merged_layout(
+        title=title, height=400,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                    bgcolor="rgba(0,0,0,0)"),
+    ))
+    fig.update_yaxes(title_text=y1_label, secondary_y=False, **GRID)
+    fig.update_yaxes(title_text=y2_label, secondary_y=True,
+                     gridcolor="rgba(0,0,0,0)")
+    fig.update_xaxes(**GRID)
+    return fig
+
+
+def diverging_hbar(df, x, y, title, x_label):
+    """Barras divergentes: positivo = sobrecosto (rojo), negativo = eficiente (cian)."""
+    d = df.sort_values(x)
+    colors = [NEGATIVE if v > 0 else PRIMARY for v in d[x]]
+    fig = go.Figure(go.Bar(
+        x=d[x], y=d[y], orientation="h",
+        marker=dict(color=colors, line=dict(width=0)),
+        text=d[x].apply(lambda v: f"{v:+.1f}%"),
+        textposition="outside", cliponaxis=False, textfont=dict(size=12),
+    ))
+    fig.add_vline(x=0, line_color="rgba(255,255,255,0.35)", line_width=1)
+    fig.update_layout(**_merged_layout(
+        title=title, height=max(340, 36 * len(d) + 90),
+        xaxis=dict(**GRID, title=x_label, ticksuffix="%"),
+        yaxis=dict(dtick=1, title=None),
+        margin=dict(l=10, r=70, t=60, b=10),
+    ))
+    return fig
+
+
+def stacked_hbar(df, y, cols, names, title, colors, x_label):
+    """Barras horizontales apiladas (ej. días vendedor vs tránsito)."""
+    fig = go.Figure()
+    for col, name, color in zip(cols, names, colors):
+        fig.add_trace(go.Bar(
+            x=df[col], y=df[y], orientation="h", name=name,
+            marker=dict(color=color, line=dict(width=0)),
+        ))
+    fig.update_layout(**_merged_layout(
+        title=title, barmode="stack",
+        height=max(340, 36 * len(df) + 100),
+        xaxis=dict(**GRID, title=x_label),
+        yaxis=dict(dtick=1, title=None, autorange="reversed"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                    bgcolor="rgba(0,0,0,0)"),
+    ))
     return fig
