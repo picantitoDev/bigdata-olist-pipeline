@@ -1,15 +1,19 @@
 """Componentes de visualización reutilizables.
 
-Paleta vibrante de alto contraste sobre modo oscuro, tipografía ampliada
-y traducción centralizada de nombres de columnas al español.
+Paleta vibrante de alto contraste, tipografía ampliada y traducción
+centralizada de nombres de columnas al español. Los colores de layout
+(texto, grillas, líneas de eje) se adaptan al tema activo de Streamlit
+(claro u oscuro) para que los ejes nunca queden invisibles.
 """
 
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
 
 # ------------------------------------------------------------------ Paleta
 # Paleta única del proyecto: minimalista, violeta como identidad,
 # rosa como acento, verde/rojo reservados para semántica (bien/mal).
+# Estos colores de marca se ven bien en ambos temas y no cambian.
 PRIMARY   = "#7C6FE8"   # violeta — color de marca, series principales
 ACCENT    = "#F06292"   # rosa — series secundarias / destacar
 POSITIVE  = "#22C55E"   # verde — solo semántica positiva
@@ -21,16 +25,85 @@ QUALITATIVE = [PRIMARY, ACCENT, "#38BDF8", "#F59E0B", "#22C55E", "#A78BFA"]
 
 SEQUENTIAL = [[0.0, "#211D3D"], [0.5, "#5B4FC4"], [1.0, "#C4BBFF"]]
 
-DARK_LAYOUT = dict(
-    template="plotly_dark",
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#F5F7FA", size=14, family="Source Sans Pro, sans-serif"),
-    title_font=dict(size=17, color="#FFFFFF"),
-    margin=dict(l=10, r=10, t=20, b=10),
-    hoverlabel=dict(font_size=13),
-    legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=12)),
-)
+
+# ------------------------------------------------------------------ Tema claro/oscuro
+def _theme_type() -> str:
+    """Detecta si el tema activo de Streamlit es 'light' o 'dark'.
+
+    Usa st.context.theme.type (Streamlit reciente) y cae a
+    st.get_option('theme.base') en versiones más antiguas; si nada
+    responde, asume 'dark' (comportamiento original de este dashboard).
+    """
+    try:
+        t = getattr(st.context.theme, "type", None)
+        if t in ("light", "dark"):
+            return t
+    except Exception:
+        pass
+    try:
+        base = st.get_option("theme.base")
+        if base in ("light", "dark"):
+            return base
+    except Exception:
+        pass
+    return "dark"
+
+
+def _palette() -> dict:
+    """Colores de layout (texto, grilla, fondo) según el tema activo."""
+    if _theme_type() == "light":
+        return dict(
+            template="plotly_white",
+            font_color="#31333F",
+            title_color="#111827",
+            grid_color="rgba(0,0,0,0.10)",
+            zeroline_color="rgba(0,0,0,0.22)",
+            axis_line_color="rgba(0,0,0,0.35)",
+            legend_bg="rgba(0,0,0,0)",
+            center_text_color="#111827",
+            marker_line_color="rgba(0,0,0,0.25)",
+            donut_border_color="#FFFFFF",
+        )
+    return dict(
+        template="plotly_dark",
+        font_color="#F5F7FA",
+        title_color="#FFFFFF",
+        grid_color="rgba(255,255,255,0.08)",
+        zeroline_color="rgba(255,255,255,0.15)",
+        axis_line_color="rgba(255,255,255,0.35)",
+        legend_bg="rgba(0,0,0,0)",
+        center_text_color="#FFFFFF",
+        marker_line_color="rgba(255,255,255,0.3)",
+        donut_border_color="#0E1117",
+    )
+
+
+def layout_dict() -> dict:
+    """Layout base de Plotly (fondo transparente, fuente, leyenda) para el tema activo."""
+    p = _palette()
+    return dict(
+        template=p["template"],
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=p["font_color"], size=14, family="Source Sans Pro, sans-serif"),
+        title_font=dict(size=17, color=p["title_color"]),
+        margin=dict(l=10, r=10, t=20, b=10),
+        hoverlabel=dict(font_size=13),
+        legend=dict(bgcolor=p["legend_bg"], font=dict(size=12)),
+    )
+
+
+def grid_style() -> dict:
+    """Colores de grilla/línea cero de los ejes para el tema activo."""
+    p = _palette()
+    return dict(gridcolor=p["grid_color"], zerolinecolor=p["zeroline_color"])
+
+
+# Alias retrocompatibles: en versiones anteriores DARK_LAYOUT/GRID eran dicts
+# fijos. Ahora son funciones (el tema puede cambiar entre sesiones), así que
+# cualquier código que las use debe llamarlas: layout_dict(), grid_style().
+DARK_LAYOUT = layout_dict  # noqa: uso: **DARK_LAYOUT() en vez de **DARK_LAYOUT
+GRID = grid_style          # noqa: uso: **GRID() en vez de **GRID
 
 
 def _with_title_margin(layout: dict, title: str) -> dict:
@@ -42,7 +115,42 @@ def _with_title_margin(layout: dict, title: str) -> dict:
         layout["margin"] = dict(layout.get("margin", {}), t=50)
     return layout
 
-GRID = dict(gridcolor="rgba(255,255,255,0.08)", zerolinecolor="rgba(255,255,255,0.15)")
+
+# ------------------------------------------------------------------ Estados (BR)
+# BigQuery guarda el estado como sigla (SP, RJ, ...). Para lectura humana
+# en la UI, se traduce siempre a nombre completo antes de graficar/mostrar.
+BR_STATE_NAMES = {
+    "AC": "Acre", "AL": "Alagoas", "AM": "Amazonas", "AP": "Amapá",
+    "BA": "Bahía", "CE": "Ceará", "DF": "Distrito Federal", "ES": "Espírito Santo",
+    "GO": "Goiás", "MA": "Maranhão", "MG": "Minas Gerais", "MS": "Mato Grosso do Sur",
+    "MT": "Mato Grosso", "PA": "Pará", "PB": "Paraíba", "PE": "Pernambuco",
+    "PI": "Piauí", "PR": "Paraná", "RJ": "Río de Janeiro", "RN": "Río Grande do Norte",
+    "RO": "Rondônia", "RR": "Roraima", "RS": "Río Grande do Sur", "SC": "Santa Catarina",
+    "SE": "Sergipe", "SP": "São Paulo", "TO": "Tocantins",
+}
+
+
+def estado_nombre(sigla: str) -> str:
+    """Traduce la sigla de un estado brasileño a su nombre completo."""
+    return BR_STATE_NAMES.get(sigla, sigla)
+
+
+def con_nombres_estado(df, col: str = "estado"):
+    """Devuelve una copia del df con la columna de estado en nombre completo."""
+    d = df.copy()
+    d[col] = d[col].map(estado_nombre)
+    return d
+
+
+def insight(texto: str):
+    """Caja de interpretación breve debajo de un gráfico, en lenguaje simple."""
+    st.markdown(
+        f'<div style="background:rgba(124,111,232,0.10); '
+        f'border-left:3px solid #7C6FE8; border-radius:6px; '
+        f'padding:8px 12px; margin:4px 0 2px 0; font-size:0.85rem; opacity:0.92;">'
+        f'💡 {texto}</div>',
+        unsafe_allow_html=True,
+    )
 
 # ------------------------------------------------------------------ Etiquetas ES
 LABELS = {
@@ -92,10 +200,10 @@ def fmt_money(v: float) -> str:
 
 def _apply(fig, height=420):
     title_text = (fig.layout.title.text or "") if fig.layout.title else ""
-    layout = _with_title_margin(DARK_LAYOUT, title_text)
+    layout = _with_title_margin(layout_dict(), title_text)
     fig.update_layout(**layout, height=height)
-    fig.update_xaxes(**GRID)
-    fig.update_yaxes(**GRID)
+    fig.update_xaxes(**grid_style())
+    fig.update_yaxes(**grid_style())
     return fig
 
 
@@ -133,11 +241,12 @@ def bar_chart(df, x, y, title, color=None, horizontal=False):
 
 
 def scatter_chart(df, x, y, size, hover, title, x_label=None, y_label=None):
+    p = _palette()
     fig = px.scatter(
         df, x=x, y=y, size=size, hover_name=hover, title=title, labels=LABELS,
         color=y, color_continuous_scale=SEQUENTIAL, size_max=45,
     )
-    fig.update_traces(marker=dict(line=dict(color="rgba(255,255,255,0.3)", width=1)))
+    fig.update_traces(marker=dict(line=dict(color=p["marker_line_color"], width=1)))
     if x_label:
         fig.update_xaxes(title_text=x_label)
     if y_label:
@@ -147,13 +256,14 @@ def scatter_chart(df, x, y, size, hover, title, x_label=None, y_label=None):
 
 
 def pie_chart(df, names, values, title):
+    p = _palette()
     fig = px.pie(
         df, names=names, values=values, title=title, hole=0.5,
         labels=LABELS, color_discrete_sequence=QUALITATIVE,
     )
     fig.update_traces(
         textinfo="percent+label", textfont_size=13,
-        marker=dict(line=dict(color="#0E1117", width=2)),
+        marker=dict(line=dict(color=p["donut_border_color"], width=2)),
         pull=[0.03] * len(df),
     )
     fig.update_layout(showlegend=False)
@@ -176,6 +286,7 @@ def histogram(df, x, y, title, x_label=None):
 
 def segment_scatter_3d(df, title):
     """Scatter 3D para visualizar clusters RFM."""
+    p = _palette()
     fig = px.scatter_3d(
         df,
         x="recency_days", y="frequency", z="monetary",
@@ -183,18 +294,17 @@ def segment_scatter_3d(df, title):
         opacity=0.65, color_discrete_sequence=QUALITATIVE,
     )
     fig.update_traces(marker=dict(size=3))
-    fig.update_layout(
-        **DARK_LAYOUT, height=620,
-        scene=dict(
-            xaxis=dict(title="Recencia (días)", gridcolor="rgba(255,255,255,0.1)",
-                       backgroundcolor="rgba(0,0,0,0)"),
-            yaxis=dict(title="Frecuencia", gridcolor="rgba(255,255,255,0.1)",
-                       backgroundcolor="rgba(0,0,0,0)"),
-            zaxis=dict(title="Valor (R$)", gridcolor="rgba(255,255,255,0.1)",
-                       backgroundcolor="rgba(0,0,0,0)"),
-        ),
-        legend=dict(orientation="h", yanchor="bottom", y=0.0, font=dict(size=13)),
+    layout = {**layout_dict(), "height": 620}
+    layout["legend"] = dict(orientation="h", yanchor="bottom", y=0.0, font=dict(size=13))
+    layout["scene"] = dict(
+        xaxis=dict(title="Recencia (días)", gridcolor=p["grid_color"],
+                   backgroundcolor="rgba(0,0,0,0)", color=p["font_color"]),
+        yaxis=dict(title="Frecuencia", gridcolor=p["grid_color"],
+                   backgroundcolor="rgba(0,0,0,0)", color=p["font_color"]),
+        zaxis=dict(title="Valor (R$)", gridcolor=p["grid_color"],
+                   backgroundcolor="rgba(0,0,0,0)", color=p["font_color"]),
     )
+    fig.update_layout(**layout)
     return fig
 
 
@@ -206,19 +316,20 @@ from plotly.subplots import make_subplots
 
 
 def _merged_layout(**overrides):
-    return {**DARK_LAYOUT, **overrides}
+    return {**layout_dict(), **overrides}
 
 
 def donut(labels, values, title, colors=None, center_text=None):
+    p = _palette()
     fig = go.Figure(go.Pie(
         labels=labels, values=values, hole=0.62,
         marker=dict(colors=colors or [PRIMARY, NEGATIVE],
-                    line=dict(color="#0E1117", width=2)),
+                    line=dict(color=p["donut_border_color"], width=2)),
         textinfo="label+percent", textfont_size=13,
     ))
     if center_text:
         fig.add_annotation(text=center_text, showarrow=False,
-                           font=dict(size=22, color="#FFFFFF"))
+                           font=dict(size=22, color=p["center_text_color"]))
     fig.update_layout(**_merged_layout(
         **_with_title_margin({}, title), title=title, height=380, showlegend=False,
     ))
@@ -241,7 +352,7 @@ def ranking_hbar(df, x, y, title, pct_col=None, color=PRIMARY, height=None):
     fig.update_layout(**_merged_layout(
         title=title,
         height=height or max(320, 34 * len(d) + 90),
-        xaxis=dict(**GRID, title=LABELS.get(x, x)),
+        xaxis=dict(**grid_style(), title=LABELS.get(x, x)),
         yaxis=dict(dtick=1, title=None),
         margin=dict(l=10, r=90, t=top_margin, b=10),
     ))
@@ -266,15 +377,16 @@ def dual_line(df, x, y1, y2, title, y1_label, y2_label):
         legend=dict(orientation="h", yanchor="bottom", y=1.02,
                     bgcolor="rgba(0,0,0,0)"),
     ))
-    fig.update_yaxes(title_text=y1_label, secondary_y=False, **GRID)
+    fig.update_yaxes(title_text=y1_label, secondary_y=False, **grid_style())
     fig.update_yaxes(title_text=y2_label, secondary_y=True,
                      gridcolor="rgba(0,0,0,0)")
-    fig.update_xaxes(**GRID)
+    fig.update_xaxes(**grid_style())
     return fig
 
 
 def diverging_hbar(df, x, y, title, x_label):
     """Barras divergentes: positivo = sobrecosto (rojo), negativo = eficiente (cian)."""
+    p = _palette()
     d = df.sort_values(x)
     colors = [NEGATIVE if v > 0 else PRIMARY for v in d[x]]
     fig = go.Figure(go.Bar(
@@ -283,11 +395,11 @@ def diverging_hbar(df, x, y, title, x_label):
         text=d[x].apply(lambda v: f"{v:+.1f}%"),
         textposition="outside", cliponaxis=False, textfont=dict(size=12),
     ))
-    fig.add_vline(x=0, line_color="rgba(255,255,255,0.35)", line_width=1)
+    fig.add_vline(x=0, line_color=p["axis_line_color"], line_width=1)
     top_margin = 50 if title else 15
     fig.update_layout(**_merged_layout(
         title=title, height=max(340, 36 * len(d) + 90),
-        xaxis=dict(**GRID, title=x_label, ticksuffix="%"),
+        xaxis=dict(**grid_style(), title=x_label, ticksuffix="%"),
         yaxis=dict(dtick=1, title=None),
         margin=dict(l=10, r=70, t=top_margin, b=10),
     ))
@@ -306,7 +418,7 @@ def stacked_hbar(df, y, cols, names, title, colors, x_label):
         title=title, barmode="stack",
         height=max(360, 36 * len(df) + 130),
         margin=dict(l=10, r=10, t=70, b=10),
-        xaxis=dict(**GRID, title=x_label),
+        xaxis=dict(**grid_style(), title=x_label),
         yaxis=dict(dtick=1, title=None, autorange="reversed"),
         legend=dict(orientation="h", yanchor="bottom", y=1.06,
                     xanchor="left", x=0, bgcolor="rgba(0,0,0,0)"),

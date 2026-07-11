@@ -8,8 +8,8 @@ from utils.queries import (
     q_score_por_retraso, q_seller_vs_transito,
 )
 from utils.charts import (
-    ranking_hbar, dual_line, donut, stacked_hbar, fmt_money,
-    PRIMARY, NEGATIVE, ACCENT, POSITIVE,
+    ranking_hbar, dual_line, donut, stacked_hbar, fmt_money, insight,
+    con_nombres_estado, PRIMARY, NEGATIVE, ACCENT, POSITIVE,
 )
 
 dates  = st.session_state.get("f_dates", ("2016-09-01", "2018-10-31"))
@@ -39,6 +39,7 @@ st.divider()
 col_izq, col_med, col_der = st.columns([3, 2, 2])
 
 retrasos = run_query(q_retraso_estado(dates, states))
+retrasos = con_nombres_estado(retrasos, "estado")
 
 with col_izq:
     st.subheader("Retrasos por estado")
@@ -47,6 +48,11 @@ with col_izq:
                      "% de órdenes entregadas fuera de plazo",
                      color=NEGATIVE, height=380),
         use_container_width=True,
+    )
+    insight(
+        "Los estados donde un mayor porcentaje de órdenes llega después de la "
+        "fecha estimada. Cuanto más larga la barra, más frecuente es el retraso "
+        "en ese estado."
     )
 
 with col_med:
@@ -57,6 +63,10 @@ with col_med:
               delta_color="inverse")
     st.metric("Mejor estado", retrasos.iloc[-1]["estado"],
               f"{retrasos['pct_tardias'].min()}% tardías", delta_color="off")
+    insight(
+        "Compara el estado con más retrasos contra el promedio general del "
+        "país, y muestra cuál es el estado con mejor cumplimiento de entrega."
+    )
 
 with col_der:
     st.subheader("Cumplimiento de entregas")
@@ -67,6 +77,10 @@ with col_der:
               colors=[PRIMARY, ACCENT],
               center_text=f"{k['pct_a_tiempo']}%"),
         use_container_width=True,
+    )
+    insight(
+        "De cada 100 órdenes entregadas, cuántas llegan dentro del plazo "
+        "prometido y cuántas llegan tarde."
     )
 
 st.divider()
@@ -82,6 +96,11 @@ with col_a:
                   "", "% tardías", "Días de entrega"),
         use_container_width=True,
     )
+    insight(
+        "Cómo evoluciona mes a mes el porcentaje de órdenes tardías junto con "
+        "el tiempo de entrega promedio. Picos que coinciden con fechas como "
+        "Black Friday suelen indicar problemas de capacidad logística."
+    )
 
 with col_b:
     st.subheader("Score según demora")
@@ -89,20 +108,26 @@ with col_b:
     colores = {"A tiempo": POSITIVE, "1-5 días": "#F59E0B",
                "6-15 días": "#F97316", "+15 días": NEGATIVE}
     import plotly.graph_objects as go
-    from utils.charts import DARK_LAYOUT, GRID
+    from utils.charts import layout_dict, grid_style
     fig = go.Figure(go.Bar(
         x=score["tramo"], y=score["score_prom"],
         marker=dict(color=[colores.get(t, PRIMARY) for t in score["tramo"]]),
         text=score["score_prom"], textposition="outside", cliponaxis=False,
     ))
-    fig.update_layout(**{**DARK_LAYOUT, "title": "",
-                         "height": 400, "yaxis": dict(**GRID, range=[0, 5], title="Score promedio"),
-                         "xaxis": dict(**GRID, title=None)})
+    fig.update_layout(**{**layout_dict(), "title": "",
+                         "height": 400, "yaxis": dict(**grid_style(), range=[0, 5], title="Score promedio"),
+                         "xaxis": dict(**grid_style(), title=None)})
     st.plotly_chart(fig, use_container_width=True)
+    insight(
+        "Muestra cómo cae la calificación (de 1 a 5 estrellas) que deja el "
+        "cliente a medida que la entrega se retrasa más. Es la prueba de que "
+        "el retraso afecta directamente la satisfacción."
+    )
 
 with col_c:
     st.subheader("Vendedor vs. transportista")
     desc = run_query(q_seller_vs_transito(dates, states))
+    desc = con_nombres_estado(desc, "estado")
     st.plotly_chart(
         stacked_hbar(desc, "estado",
                      ["dias_vendedor", "dias_transito"],
@@ -110,17 +135,14 @@ with col_c:
                      "", [PRIMARY, ACCENT], "Días promedio"),
         use_container_width=True,
     )
+    insight(
+        "**Vendedor** = días entre que se aprueba el pago y el vendedor entrega "
+        "el paquete al transportista (tiempo de preparación/despacho). "
+        "**Transportista** = días entre que el transportista recoge el paquete "
+        "y lo entrega al cliente (tiempo de tránsito/reparto). Juntos suman el "
+        "tiempo total de entrega; el color más largo indica dónde está el cuello "
+        "de botella en cada estado — si es 'Vendedor', el problema es de "
+        "despacho; si es 'Transportista', es de distancia o del operador logístico."
+    )
 
 st.divider()
-
-# ------------------------------------------------------------------ Decisiones
-st.subheader("Decisiones accionables")
-d1, d2, d3, d4 = st.columns(4)
-d1.markdown("**📌 Ajustar promesa en estados críticos**  \n"
-            "Ampliar el margen de la fecha estimada donde el retraso es mayor.")
-d2.markdown("**🚛 Transportista alternativo en el nordeste**  \n"
-            "El tránsito domina la demora en la región: evaluar operadores regionales.")
-d3.markdown("**⏱️ SLA de despacho de 48h**  \n"
-            "Para vendedores cuyo tramo de preparación excede los 3 días.")
-d4.markdown("**🛡️ Intervención proactiva 6+ días**  \n"
-            "Contacto y compensación preventiva ante retraso proyectado.")

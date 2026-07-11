@@ -7,7 +7,10 @@ from utils.queries import (
     q_kpis_ventas, q_ingresos_estado, q_evolucion,
     q_top_categorias, q_metodos_pago, q_una_compra,
 )
-from utils.charts import ranking_hbar, dual_line, donut, fmt_money, QUALITATIVE
+from utils.charts import (
+    ranking_hbar, dual_line, donut, fmt_money, QUALITATIVE,
+    con_nombres_estado, insight,
+)
 
 dates  = st.session_state.get("f_dates", ("2016-09-01", "2018-10-31"))
 states = st.session_state.get("f_states", ())
@@ -35,6 +38,7 @@ col_izq, col_der = st.columns([3, 2])
 estados_df = run_query(q_ingresos_estado(dates, states))
 total_ing = estados_df["ingresos"].sum()
 estados_df["participacion"] = 100 * estados_df["ingresos"] / total_ing
+estados_df = con_nombres_estado(estados_df, "estado")
 
 with col_izq:
     st.subheader("Ingresos por estado")
@@ -44,13 +48,18 @@ with col_izq:
                      pct_col="participacion"),
         use_container_width=True,
     )
+    insight(
+        "Muestra los 5 estados que más ingresos generan y qué porcentaje del "
+        "total representa cada uno. Ayuda a ver dónde está concentrado el negocio "
+        "y dónde hay oportunidad de crecer."
+    )
     with st.expander("Ver todos los estados"):
         st.dataframe(
             estados_df, use_container_width=True, hide_index=True,
             column_config={
                 "estado": "Estado",
                 "ingresos": st.column_config.NumberColumn("Ingresos (R$)", format="%.0f"),
-                "ticket_por_orden": st.column_config.NumberColumn("Ticket/orden (R$)", format="%.2f"),
+                "ticket_por_orden": st.column_config.NumberColumn("Valor promedio por orden (R$)", format="%.2f"),
                 "participacion": st.column_config.NumberColumn("Participación %", format="%.1f%%"),
             },
         )
@@ -71,6 +80,12 @@ with col_der:
               f"R$ {una['ltv_recurrente']:,.0f}",
               f"+{(una['ltv_recurrente']/una['ltv_una']-1)*100:.0f}%",
               delta_color="off")
+    insight(
+        "El estado líder concentra el mayor porcentaje de ingresos, mientras "
+        "que el de mayor valor promedio por orden no siempre es el mismo. "
+        "Abajo: qué tan grande es el problema de que un cliente compre una sola "
+        "vez y cuánto vale, en promedio, un cliente que sí regresa a comprar."
+    )
 
 st.divider()
 
@@ -85,6 +100,12 @@ with col_a:
                   "", "Ingresos (R$)", "Órdenes"),
         use_container_width=True,
     )
+    insight(
+        "Compara mes a mes cómo crecen (o caen) los ingresos junto con la "
+        "cantidad de órdenes. Si ambas líneas suben juntas, el crecimiento es "
+        "sano; si los ingresos suben pero las órdenes no, el ticket promedio "
+        "está creciendo."
+    )
 
 with col_b:
     st.subheader("Top 5 categorías")
@@ -94,6 +115,10 @@ with col_b:
         ranking_hbar(cats, "ingresos", "categoria", "",
                      pct_col="participacion", height=400),
         use_container_width=True,
+    )
+    insight(
+        "Las 5 categorías de producto que más ingresos generan. Útil para "
+        "saber dónde priorizar inventario y campañas de marketing."
     )
 
 with col_c:
@@ -108,17 +133,8 @@ with col_c:
     pct_dom = 100 * dom["valor"] / pagos["valor"].sum()
     st.metric(dom["metodo"], f"{pct_dom:.1f}% del valor total",
               f"{dom['cuotas_prom']:.1f} cuotas prom.", delta_color="off")
-
-st.divider()
-
-# ------------------------------------------------------------------ Decisiones
-st.subheader("Decisiones accionables")
-d1, d2, d3, d4 = st.columns(4)
-d1.markdown("**📍 Expandir en regiones de alto ticket**  \n"
-            "Fortalecer logística y campañas fuera de los estados líderes.")
-d2.markdown("**👥 Impulsar la retención**  \n"
-            "Fidelización y seguimiento postventa para clientes de una compra.")
-d3.markdown("**💳 Optimizar métodos de pago**  \n"
-            "Promociones con el método dominante y alianzas para cuotas.")
-d4.markdown("**📊 Foco en categorías top**  \n"
-            "Priorizar marketing en las categorías de mayor participación.")
+    insight(
+        "Cómo se reparte el valor de las ventas entre los distintos métodos "
+        "de pago, y en cuántas cuotas suele pagar el cliente con el método "
+        "más usado."
+    )

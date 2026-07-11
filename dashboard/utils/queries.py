@@ -8,12 +8,20 @@ MARTS = "big-data-495719.olist_marts"
 # ------------------------------------------------------------------
 
 KPIS_GLOBALES = f"""
+with por_cliente as (
+    select c.customer_unique_id, count(distinct f.order_id) as n_orders
+    from `{MARTS}.fct_order_items` f
+    join `{MARTS}.dim_customers` c on f.customer_key = c.customer_key
+    group by 1
+)
 select
     count(distinct f.order_id)                    as total_orders,
     round(sum(f.total_item_value), 2)             as total_revenue,
     round(sum(f.total_item_value)
         / count(distinct f.order_id), 2)          as avg_order_value,
-    count(distinct f.customer_key)                as total_customers
+    count(distinct f.customer_key)                as total_customers,
+    (select round(100 * countif(n_orders >= 2) / count(*), 1)
+     from por_cliente)                             as tasa_recompra
 from `{MARTS}.fct_order_items` f
 """
 
@@ -35,6 +43,31 @@ from `{MARTS}.fct_order_items` f
 join `{MARTS}.dim_dates` d on f.order_date_key = d.date_key
 group by 1, 2, 3
 order by 1, 2
+"""
+
+ESTADO_CRECIMIENTO_ALERTAS = f"""
+-- Ingresos por estado + % de entregas tardías, para la vista de
+-- "estado general" con alertas en el resumen ejecutivo.
+with base as (
+    select
+        c.customer_state                                   as estado,
+        f.order_id,
+        f.total_item_value,
+        o.is_delivered_on_time
+    from `{MARTS}.fct_order_items` f
+    join `{MARTS}.dim_customers` c on f.customer_key = c.customer_key
+    join `{MARTS}.dim_orders`    o on f.order_key    = o.order_key
+    where o.delivery_days is not null
+)
+select
+    estado,
+    round(sum(total_item_value), 2)                              as ingresos,
+    count(distinct order_id)                                     as ordenes,
+    round(100 * countif(not is_delivered_on_time) / count(*), 1) as pct_tardias
+from base
+group by 1
+having count(distinct order_id) > 100
+order by ingresos desc
 """
 
 # ------------------------------------------------------------------
