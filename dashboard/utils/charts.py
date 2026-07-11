@@ -287,6 +287,23 @@ def histogram(df, x, y, title, x_label=None):
 def segment_scatter_3d(df, title):
     """Scatter 3D para visualizar clusters RFM."""
     p = _palette()
+
+    def _axis(texto_titulo):
+        # OJO: en algunas versiones de Plotly la propiedad "color" de un eje
+        # de escena 3D no se propaga al título ni a los ticks — hay que
+        # fijar cada uno explícitamente o el eje queda en negro/invisible.
+        return dict(
+            title=dict(text=texto_titulo, font=dict(color=p["font_color"], size=12)),
+            color=p["font_color"],
+            tickfont=dict(color=p["font_color"], size=10),
+            tickcolor=p["font_color"],
+            linecolor=p["axis_line_color"],
+            gridcolor=p["grid_color"],
+            zerolinecolor=p["zeroline_color"],
+            showbackground=True,
+            backgroundcolor="rgba(0,0,0,0)",
+        )
+
     fig = px.scatter_3d(
         df,
         x="recency_days", y="frequency", z="monetary",
@@ -295,14 +312,15 @@ def segment_scatter_3d(df, title):
     )
     fig.update_traces(marker=dict(size=3))
     layout = {**layout_dict(), "height": 620}
-    layout["legend"] = dict(orientation="h", yanchor="bottom", y=0.0, font=dict(size=13))
+    layout["legend"] = dict(
+        orientation="h", yanchor="bottom", y=0.0,
+        font=dict(size=13, color=p["font_color"]), bgcolor="rgba(0,0,0,0)",
+    )
     layout["scene"] = dict(
-        xaxis=dict(title="Recencia (días)", gridcolor=p["grid_color"],
-                   backgroundcolor="rgba(0,0,0,0)", color=p["font_color"]),
-        yaxis=dict(title="Frecuencia", gridcolor=p["grid_color"],
-                   backgroundcolor="rgba(0,0,0,0)", color=p["font_color"]),
-        zaxis=dict(title="Valor (R$)", gridcolor=p["grid_color"],
-                   backgroundcolor="rgba(0,0,0,0)", color=p["font_color"]),
+        bgcolor="rgba(0,0,0,0)",
+        xaxis=_axis("Recencia (días)"),
+        yaxis=_axis("Frecuencia"),
+        zaxis=_axis("Valor (R$)"),
     )
     fig.update_layout(**layout)
     return fig
