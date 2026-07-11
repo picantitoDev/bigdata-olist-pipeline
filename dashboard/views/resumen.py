@@ -7,11 +7,7 @@ from utils.queries import KPIS_GLOBALES, NPS_APROXIMADO, REVENUE_MENSUAL
 from utils.charts import line_chart, fmt_money
 
 st.title("📈 Olist Analytics Platform")
-st.caption(
-    "Plataforma analítica end-to-end sobre el dataset de e-commerce brasileño Olist. "
-    "Datos procesados vía dlt → Spark/Dataproc → BigQuery → dbt. "
-    "Ver página **Arquitectura** para el detalle técnico."
-)
+st.caption("E-commerce brasileño · dlt → Spark → BigQuery → dbt")
 
 # ------------------------------------------------------------------ KPIs
 kpis = run_query(KPIS_GLOBALES)
@@ -60,7 +56,3 @@ st.markdown(
 """
 )
 
-st.info(
-    "💡 Usa el **sidebar** para navegar a cada módulo de análisis. "
-    "Cada insight está sustentado con evidencia consultada en vivo desde BigQuery."
-)

@@ -1,4 +1,4 @@
-"""Ventas y Clientes — desempeño comercial con filtros globales."""
+"""Ventas y Clientes — desempeño comercial."""
 
 import streamlit as st
 
@@ -13,8 +13,8 @@ dates  = st.session_state.get("f_dates", ("2016-09-01", "2018-10-31"))
 states = st.session_state.get("f_states", ())
 
 st.title("🛒 Ventas y Clientes")
-st.caption("Resumen ejecutivo del desempeño comercial · Período completo del dataset"
-           + (f" · Estados: {', '.join(states)}" if states else " · Todo Brasil"))
+st.caption("Resumen ejecutivo del desempeño comercial"
+           + (f" · {', '.join(states)}" if states else " · Todo Brasil"))
 
 # ------------------------------------------------------------------ 6 KPIs
 k = run_query(q_kpis_ventas(dates, states)).iloc[0]
@@ -25,8 +25,7 @@ c[1].metric("Órdenes totales",    f"{int(k['ordenes']):,}")
 c[2].metric("Clientes únicos",    f"{int(k['clientes']):,}")
 c[3].metric("Ticket promedio",    f"R$ {k['ticket_promedio']:,.2f}")
 c[4].metric("Órdenes por cliente", f"{k['ordenes_por_cliente']:.2f}")
-c[5].metric("Tasa de retención",  f"{k['tasa_retencion']}%",
-            help="% de clientes con 2 o más compras en el período")
+c[5].metric("Tasa de retención",  f"{k['tasa_retencion']}%")
 
 st.divider()
 
@@ -41,8 +40,7 @@ with col_izq:
     st.subheader("Ingresos por estado")
     top5 = estados_df.head(5).copy()
     st.plotly_chart(
-        ranking_hbar(top5, "ingresos", "estado",
-                     "Top 5 estados · participación % sobre ingresos totales",
+        ranking_hbar(top5, "ingresos", "estado", "",
                      pct_col="participacion"),
         use_container_width=True,
     )
@@ -58,31 +56,21 @@ with col_izq:
         )
 
 with col_der:
-    st.subheader("💡 Insight clave")
     lider = estados_df.iloc[0]
     mayor_ticket = estados_df.sort_values("ticket_por_orden", ascending=False).iloc[0]
-    st.markdown(
-        f"**{lider['estado']}** concentra el **{lider['participacion']:.1f}%** de los "
-        f"ingresos. Sin embargo, el mayor **ticket promedio por orden** está en "
-        f"**{mayor_ticket['estado']}** (R$ {mayor_ticket['ticket_por_orden']:,.2f}), "
-        "lo que indica oportunidades de crecimiento con estrategias logísticas y "
-        "de promoción adecuadas en regiones de alto valor unitario."
-    )
-    st.metric("Mayor ticket promedio por orden",
-              f"R$ {mayor_ticket['ticket_por_orden']:,.2f}",
-              mayor_ticket["estado"])
+
+    st.subheader("Concentración")
+    st.metric(lider["estado"], f"{lider['participacion']:.1f}% de los ingresos")
+    st.metric("Mayor ticket promedio", mayor_ticket["estado"],
+              f"R$ {mayor_ticket['ticket_por_orden']:,.2f}", delta_color="off")
 
     una = run_query(q_una_compra(dates, states)).iloc[0]
     st.markdown("---")
-    st.metric("Clientes de una sola compra", f"{una['pct_una_compra']}%",
-              help="El principal reto del negocio: retención")
-    st.markdown(
-        f"**Oportunidad:** un cliente recurrente vale R$ {una['ltv_recurrente']:,.0f} "
-        f"vs R$ {una['ltv_una']:,.0f} del cliente único "
-        f"(+{(una['ltv_recurrente']/una['ltv_una']-1)*100:.0f}%). Mejorar la experiencia "
-        "postventa y personalización puede aumentar la retención y el valor "
-        "del cliente a largo plazo."
-    )
+    st.metric("Clientes de una sola compra", f"{una['pct_una_compra']}%")
+    st.metric("LTV recurrente vs. único",
+              f"R$ {una['ltv_recurrente']:,.0f}",
+              f"+{(una['ltv_recurrente']/una['ltv_una']-1)*100:.0f}%",
+              delta_color="off")
 
 st.divider()
 
@@ -94,7 +82,7 @@ with col_a:
     evo = run_query(q_evolucion(dates, states))
     st.plotly_chart(
         dual_line(evo, "mes", "ingresos", "ordenes",
-                  "Tendencia mensual", "Ingresos (R$)", "Órdenes"),
+                  "", "Ingresos (R$)", "Órdenes"),
         use_container_width=True,
     )
 
@@ -103,8 +91,7 @@ with col_b:
     cats = run_query(q_top_categorias(dates, states, 5))
     cats["participacion"] = 100 * cats["ingresos"] / k["ingresos"]
     st.plotly_chart(
-        ranking_hbar(cats, "ingresos", "categoria",
-                     "Participación sobre ingresos totales",
+        ranking_hbar(cats, "ingresos", "categoria", "",
                      pct_col="participacion", height=400),
         use_container_width=True,
     )
@@ -113,29 +100,25 @@ with col_c:
     st.subheader("Métodos de pago")
     pagos = run_query(q_metodos_pago(dates, states))
     st.plotly_chart(
-        donut(pagos["metodo"], pagos["valor"],
-              "Participación sobre valor total",
+        donut(pagos["metodo"], pagos["valor"], "",
               colors=QUALITATIVE),
         use_container_width=True,
     )
     dom = pagos.iloc[0]
     pct_dom = 100 * dom["valor"] / pagos["valor"].sum()
-    st.success(
-        f"**Insight:** {dom['metodo']} domina con el {pct_dom:.1f}% del valor total "
-        f"({dom['cuotas_prom']:.1f} cuotas promedio)."
-    )
+    st.metric(dom["metodo"], f"{pct_dom:.1f}% del valor total",
+              f"{dom['cuotas_prom']:.1f} cuotas prom.", delta_color="off")
 
 st.divider()
 
 # ------------------------------------------------------------------ Decisiones
 st.subheader("Decisiones accionables")
 d1, d2, d3, d4 = st.columns(4)
-d1.markdown("**📍 Expandir en regiones con alto ticket promedio**  \n"
-            "Fortalecer la logística y campañas en el norte y noreste del país.")
-d2.markdown("**👥 Impulsar la retención de clientes**  \n"
-            "Programas de fidelización, descuentos personalizados y "
-            "seguimiento postventa.")
+d1.markdown("**📍 Expandir en regiones de alto ticket**  \n"
+            "Fortalecer logística y campañas fuera de los estados líderes.")
+d2.markdown("**👥 Impulsar la retención**  \n"
+            "Fidelización y seguimiento postventa para clientes de una compra.")
 d3.markdown("**💳 Optimizar métodos de pago**  \n"
-            "Promociones con tarjeta y alianzas financieras para facilitar cuotas.")
-d4.markdown("**📊 Foco en categorías estratégicas**  \n"
-            "Invertir marketing en categorías con mayor participación y crecimiento.")
+            "Promociones con el método dominante y alianzas para cuotas.")
+d4.markdown("**📊 Foco en categorías top**  \n"
+            "Priorizar marketing en las categorías de mayor participación.")

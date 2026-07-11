@@ -5,21 +5,10 @@ import streamlit as st
 from utils.bigquery import run_query
 from utils.queries import RFM_BASE
 from utils.ml import segment_customers, SEGMENT_ACTIONS
-from utils.charts import segment_scatter_3d
+from utils.charts import segment_scatter_3d, fmt_money
 
 st.title("🤖 Segmentación de Clientes con IA")
-
-st.markdown(
-    """
-**Propósito de negocio:** dado que ~97% de los clientes compra una sola vez
-(ver *Ventas y Clientes*), este módulo identifica **a quién dirigir cada tipo de
-campaña de retención** para maximizar el ROI del presupuesto de marketing.
-
-**Metodología:** análisis RFM (Recency, Frequency, Monetary) calculado en BigQuery
-sobre `customer_unique_id` (la persona real, no la instancia de orden), seguido de
-clustering K-Means (k=4) sobre variables estandarizadas.
-"""
-)
+st.caption("RFM + K-Means sobre customer_unique_id · 4 segmentos accionables para campañas de retención")
 
 # ------------------------------------------------------------------ Modelo
 rfm = run_query(RFM_BASE)
@@ -33,8 +22,8 @@ for i, (_, row) in enumerate(summary.iterrows()):
     with cols[i]:
         st.metric(
             f"{SEGMENT_ACTIONS[seg]['color']} {seg}",
-            f"{row['customers']:,} clientes",
-            f"R$ {row['total_value']:,.0f} en valor",
+            f"{row['customers']:,}",
+            fmt_money(row["total_value"]), delta_color="off",
         )
 
 st.dataframe(
@@ -54,11 +43,11 @@ st.dataframe(
 st.divider()
 
 # ------------------------------------------------------------------ Visualización
-st.subheader("Visualización de clusters (espacio RFM)")
+st.subheader("Clusters en el espacio RFM")
 
 sample = df_seg.sample(min(5000, len(df_seg)), random_state=42)
 st.plotly_chart(
-    segment_scatter_3d(sample, "Clusters de clientes en el espacio RFM (muestra de 5,000)"),
+    segment_scatter_3d(sample, ""),
     use_container_width=True,
 )
 

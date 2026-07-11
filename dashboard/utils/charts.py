@@ -26,11 +26,21 @@ DARK_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
     font=dict(color="#F5F7FA", size=14, family="Source Sans Pro, sans-serif"),
-    title_font=dict(size=18, color="#FFFFFF"),
-    margin=dict(l=10, r=10, t=60, b=10),
+    title_font=dict(size=17, color="#FFFFFF"),
+    margin=dict(l=10, r=10, t=20, b=10),
     hoverlabel=dict(font_size=13),
     legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=12)),
 )
+
+
+def _with_title_margin(layout: dict, title: str) -> dict:
+    """Si no hay título, reduce el margen superior — evita hueco vacío."""
+    layout = dict(layout)
+    if not title:
+        layout["margin"] = dict(layout.get("margin", {}), t=15)
+    else:
+        layout["margin"] = dict(layout.get("margin", {}), t=50)
+    return layout
 
 GRID = dict(gridcolor="rgba(255,255,255,0.08)", zerolinecolor="rgba(255,255,255,0.15)")
 
@@ -81,7 +91,9 @@ def fmt_money(v: float) -> str:
 
 
 def _apply(fig, height=420):
-    fig.update_layout(**DARK_LAYOUT, height=height)
+    title_text = (fig.layout.title.text or "") if fig.layout.title else ""
+    layout = _with_title_margin(DARK_LAYOUT, title_text)
+    fig.update_layout(**layout, height=height)
     fig.update_xaxes(**GRID)
     fig.update_yaxes(**GRID)
     return fig
@@ -171,12 +183,9 @@ def segment_scatter_3d(df, title):
         opacity=0.65, color_discrete_sequence=QUALITATIVE,
     )
     fig.update_traces(marker=dict(size=3))
-
-    layout = {
-        **DARK_LAYOUT,
-        "height": 620,
-        "legend": dict(orientation="h", yanchor="bottom", y=0.0, font=dict(size=13)),
-        "scene": dict(
+    fig.update_layout(
+        **DARK_LAYOUT, height=620,
+        scene=dict(
             xaxis=dict(title="Recencia (días)", gridcolor="rgba(255,255,255,0.1)",
                        backgroundcolor="rgba(0,0,0,0)"),
             yaxis=dict(title="Frecuencia", gridcolor="rgba(255,255,255,0.1)",
@@ -184,8 +193,8 @@ def segment_scatter_3d(df, title):
             zaxis=dict(title="Valor (R$)", gridcolor="rgba(255,255,255,0.1)",
                        backgroundcolor="rgba(0,0,0,0)"),
         ),
-    }
-    fig.update_layout(**layout)
+        legend=dict(orientation="h", yanchor="bottom", y=0.0, font=dict(size=13)),
+    )
     return fig
 
 
@@ -211,7 +220,7 @@ def donut(labels, values, title, colors=None, center_text=None):
         fig.add_annotation(text=center_text, showarrow=False,
                            font=dict(size=22, color="#FFFFFF"))
     fig.update_layout(**_merged_layout(
-        title=title, height=380, showlegend=False,
+        **_with_title_margin({}, title), title=title, height=380, showlegend=False,
     ))
     return fig
 
@@ -228,12 +237,13 @@ def ranking_hbar(df, x, y, title, pct_col=None, color=PRIMARY, height=None):
         text=text, textposition="outside", cliponaxis=False,
         textfont=dict(size=12),
     ))
+    top_margin = 50 if title else 15
     fig.update_layout(**_merged_layout(
         title=title,
         height=height or max(320, 34 * len(d) + 90),
         xaxis=dict(**GRID, title=LABELS.get(x, x)),
         yaxis=dict(dtick=1, title=None),
-        margin=dict(l=10, r=90, t=60, b=10),
+        margin=dict(l=10, r=90, t=top_margin, b=10),
     ))
     return fig
 
@@ -249,8 +259,10 @@ def dual_line(df, x, y1, y2, title, y1_label, y2_label):
         x=df[x], y=df[y2], name=y2_label, mode="lines+markers",
         line=dict(color=PRIMARY, width=2, dash="dot"), marker=dict(size=5),
     ), secondary_y=True)
+    top_margin = 70 if title else 45
     fig.update_layout(**_merged_layout(
         title=title, height=400,
+        margin=dict(l=10, r=10, t=top_margin, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02,
                     bgcolor="rgba(0,0,0,0)"),
     ))
@@ -272,11 +284,12 @@ def diverging_hbar(df, x, y, title, x_label):
         textposition="outside", cliponaxis=False, textfont=dict(size=12),
     ))
     fig.add_vline(x=0, line_color="rgba(255,255,255,0.35)", line_width=1)
+    top_margin = 50 if title else 15
     fig.update_layout(**_merged_layout(
         title=title, height=max(340, 36 * len(d) + 90),
         xaxis=dict(**GRID, title=x_label, ticksuffix="%"),
         yaxis=dict(dtick=1, title=None),
-        margin=dict(l=10, r=70, t=60, b=10),
+        margin=dict(l=10, r=70, t=top_margin, b=10),
     ))
     return fig
 
@@ -291,10 +304,11 @@ def stacked_hbar(df, y, cols, names, title, colors, x_label):
         ))
     fig.update_layout(**_merged_layout(
         title=title, barmode="stack",
-        height=max(340, 36 * len(df) + 100),
+        height=max(360, 36 * len(df) + 130),
+        margin=dict(l=10, r=10, t=70, b=10),
         xaxis=dict(**GRID, title=x_label),
         yaxis=dict(dtick=1, title=None, autorange="reversed"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02,
-                    bgcolor="rgba(0,0,0,0)"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.06,
+                    xanchor="left", x=0, bgcolor="rgba(0,0,0,0)"),
     ))
     return fig
