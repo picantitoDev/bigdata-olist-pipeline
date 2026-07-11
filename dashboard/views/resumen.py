@@ -8,7 +8,7 @@ from utils.queries import (
     ESTADO_CRECIMIENTO_ALERTAS, RFM_BASE, q_kpis_logistica,
 )
 from utils.charts import line_chart, ranking_hbar, fmt_money, insight, con_nombres_estado
-from utils.ml import segment_customers, SEGMENT_ACTIONS
+from utils.ml import segment_customers
 
 FULL_RANGE = ("2016-09-01", "2018-10-31")
 
@@ -103,25 +103,53 @@ with col_alert:
 st.divider()
 
 # ------------------------------------------------------------------ Segmentación de clientes (K-Means)
-st.subheader("Segmentos de clientes (IA — RFM + K-Means)")
+st.subheader("Oportunidad comercial por segmentos")
 
 rfm = run_query(RFM_BASE)
 df_seg, summary = segment_customers(rfm)
 
-cols = st.columns(4)
-for i, (_, row) in enumerate(summary.iterrows()):
-    seg = row["segment_name"]
-    with cols[i]:
-        st.metric(
-            f"{SEGMENT_ACTIONS[seg]['color']} {seg}",
-            f"{row['customers']:,} clientes",
-            fmt_money(row["total_value"]), delta_color="off",
-        )
+total_clientes = summary["customers"].sum()
+total_valor = summary["total_value"].sum()
+
+at_risk = summary[summary["segment_name"] == "At Risk"].iloc[0]
+top_valor_seg = summary[summary["segment_name"].isin(["Champions", "Loyal"])]
+
+pct_at_risk = 100 * at_risk["customers"] / total_clientes
+pct_top_clientes = 100 * top_valor_seg["customers"].sum() / total_clientes
+pct_top_valor = 100 * top_valor_seg["total_value"].sum() / total_valor
+
+s1, s2, s3 = st.columns(3)
+
+with s1:
+    st.metric("🎯 Segmento prioritario", f"{pct_at_risk:.1f}%", "de los clientes está en At Risk",
+               delta_color="off")
+    st.caption(
+        "Es el grupo más numeroso de la base de clientes y requiere una "
+        "estrategia de reactivación."
+    )
+
+with s2:
+    st.metric("💰 Clientes de mayor valor", f"{pct_top_valor:.1f}% del valor",
+               f"con solo {pct_top_clientes:.1f}% de los clientes", delta_color="off")
+    st.caption(
+        "Champions y Loyal son una porción reducida de la base, pero "
+        "concentran una parte considerable del valor total generado."
+    )
+
+with s3:
+    st.metric("🚀 Acción prioritaria", "Reactivar y proteger", delta_color="off")
+    st.caption(
+        "Reactivar a los clientes At Risk y proteger a los segmentos de mayor "
+        "valor: aplicar campañas diferenciadas de reactivación, fidelización "
+        "y venta cruzada según el perfil identificado."
+    )
+
 insight(
-    "El modelo agrupa a los clientes según recencia, frecuencia y valor de "
-    "compra en 4 perfiles: Champions (los mejores), Loyal (fieles), At Risk "
-    "(se están yendo) y Hibernating (inactivos). Cada uno tiene una acción de "
-    "campaña distinta — ver el detalle en Segmentación IA."
+    "Vista ejecutiva de la oportunidad comercial: dónde está el mayor riesgo "
+    "(At Risk), dónde está concentrado el valor (Champions + Loyal) y qué "
+    "acción tomar. El detalle completo por segmento — clientes, valor "
+    "individual, centroides RFM y campañas recomendadas — está disponible en "
+    "Segmentación IA."
 )
 
 st.divider()
