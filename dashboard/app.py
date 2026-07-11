@@ -2,6 +2,8 @@
 
 import streamlit as st
 
+from utils.charts import estado_nombre
+
 st.set_page_config(
     page_title="Olist Analytics",
     page_icon="🛍️",
@@ -49,6 +51,7 @@ with st.sidebar:
     )
     estados_sel = st.multiselect(
         "Filtrar por estado", ESTADOS_BR, default=[],
+        format_func=estado_nombre,
         placeholder="Todos los estados",
         help="Vacío = análisis de todo Brasil",
     )
