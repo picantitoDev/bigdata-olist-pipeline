@@ -19,7 +19,7 @@ metrics as (
 
         case
             when order_delivered_customer_date is null then null
-            when order_delivered_customer_date <= order_estimated_delivery_date then true
+            when {{ dbt.datediff('order_estimated_delivery_date', 'order_delivered_customer_date', 'day') }} <= 0 then true
             else false
         end as is_delivered_on_time
 
