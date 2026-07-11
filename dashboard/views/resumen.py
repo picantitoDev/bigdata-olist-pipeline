@@ -111,8 +111,8 @@ df_seg, summary = segment_customers(rfm)
 total_clientes = summary["customers"].sum()
 total_valor = summary["total_value"].sum()
 
-at_risk = summary[summary["segment_name"] == "At Risk"].iloc[0]
-top_valor_seg = summary[summary["segment_name"].isin(["Champions", "Loyal"])]
+at_risk = summary[summary["segment_name"] == "En Riesgo"].iloc[0]
+top_valor_seg = summary[summary["segment_name"].isin(["Campeones", "Leales"])]
 
 pct_at_risk = 100 * at_risk["customers"] / total_clientes
 pct_top_clientes = 100 * top_valor_seg["customers"].sum() / total_clientes
@@ -121,7 +121,7 @@ pct_top_valor = 100 * top_valor_seg["total_value"].sum() / total_valor
 s1, s2, s3 = st.columns(3)
 
 with s1:
-    st.metric("🎯 Segmento prioritario", f"{pct_at_risk:.1f}%", "de los clientes está en At Risk",
+    st.metric("🎯 Segmento prioritario", f"{pct_at_risk:.1f}%", "de los clientes está En Riesgo",
                delta_color="off")
     st.caption(
         "Es el grupo más numeroso de la base de clientes y requiere una "
@@ -132,21 +132,21 @@ with s2:
     st.metric("💰 Clientes de mayor valor", f"{pct_top_valor:.1f}% del valor",
                f"con solo {pct_top_clientes:.1f}% de los clientes", delta_color="off")
     st.caption(
-        "Champions y Loyal son una porción reducida de la base, pero "
+        "Campeones y Leales son una porción reducida de la base, pero "
         "concentran una parte considerable del valor total generado."
     )
 
 with s3:
     st.metric("🚀 Acción prioritaria", "Reactivar y proteger", delta_color="off")
     st.caption(
-        "Reactivar a los clientes At Risk y proteger a los segmentos de mayor "
+        "Reactivar a los clientes En Riesgo y proteger a los segmentos de mayor "
         "valor: aplicar campañas diferenciadas de reactivación, fidelización "
         "y venta cruzada según el perfil identificado."
     )
 
 insight(
     "Vista ejecutiva de la oportunidad comercial: dónde está el mayor riesgo "
-    "(At Risk), dónde está concentrado el valor (Champions + Loyal) y qué "
+    "(En Riesgo), dónde está concentrado el valor (Campeones + Leales) y qué "
     "acción tomar. El detalle completo por segmento — clientes, valor "
     "individual, centroides RFM y campañas recomendadas — está disponible en "
     "Segmentación IA."

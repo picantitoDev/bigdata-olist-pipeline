@@ -12,25 +12,25 @@ from sklearn.preprocessing import StandardScaler
 
 # Acciones de negocio por perfil de segmento
 SEGMENT_ACTIONS = {
-    "Champions": {
+    "Campeones": {
         "desc": "Compraron recientemente, alta frecuencia y alto valor.",
-        "action": "Programa de fidelidad y early-access a nuevos productos. "
+        "action": "Programa de fidelidad y acceso anticipado a nuevos productos. "
                   "Son los mejores candidatos para referidos.",
         "color": "🏆",
     },
-    "Loyal": {
+    "Leales": {
         "desc": "Frecuencia y valor por encima del promedio, compra no tan reciente.",
-        "action": "Cross-selling de categorías complementarias y recordatorios "
-                  "personalizados para mantener el habito.",
+        "action": "Venta cruzada de categorías complementarias y recordatorios "
+                  "personalizados para mantener el hábito.",
         "color": "💎",
     },
-    "At Risk": {
+    "En Riesgo": {
         "desc": "Fueron buenos clientes pero llevan mucho tiempo sin comprar.",
-        "action": "Campana de reactivacion con descuento agresivo (15-20%) "
+        "action": "Campaña de reactivación con descuento agresivo (15-20%) "
                   "antes de perderlos definitivamente.",
         "color": "⚠️",
     },
-    "Hibernating": {
+    "Inactivos": {
         "desc": "Compraron una vez hace mucho, bajo valor.",
         "action": "Email de bajo costo con novedades. No invertir en ads pagados "
                   "para este segmento — el ROI no lo justifica.",
@@ -63,7 +63,7 @@ def segment_customers(rfm_df: pd.DataFrame, n_clusters: int = 4) -> tuple[pd.Dat
         .assign(health=lambda x: x["monetary"].rank() - x["recency"].rank())
         .sort_values("health", ascending=False)
     )
-    names = ["Champions", "Loyal", "At Risk", "Hibernating"]
+    names = ["Campeones", "Leales", "En Riesgo", "Inactivos"]
     cluster_to_name = {c: names[i] for i, c in enumerate(profile.index)}
     df["segment_name"] = df["cluster"].map(cluster_to_name)
 
