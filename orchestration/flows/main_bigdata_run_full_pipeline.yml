@@ -1,0 +1,37 @@
+id: run_full_pipeline
+namespace: bigdata
+tasks:
+  - id: init_gcp_kv
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: bigdata
+    flowId: init_gcp_kv
+    wait: true
+    transmitFailed: true
+
+  - id: ingestion_kaggle_to_gcs
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: bigdata
+    flowId: ingestion_kaggle_to_gcs
+    wait: true
+    transmitFailed: true
+
+  - id: processing_raw_to_processed
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: bigdata
+    flowId: processing_raw_to_processed
+    wait: true
+    transmitFailed: true
+
+  - id: warehouse_schema_mapping
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: bigdata
+    flowId: warehouse_schema_mapping
+    wait: true
+    transmitFailed: true
+
+  - id: analytical_model_transformation
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: bigdata
+    flowId: analytical_model_transformation
+    wait: true
+    transmitFailed: true
