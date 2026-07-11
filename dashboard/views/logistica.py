@@ -8,7 +8,7 @@ from utils.queries import (
     q_score_por_retraso, q_seller_vs_transito,
 )
 from utils.charts import (
-    ranking_hbar, dual_line, donut, stacked_hbar, fmt_money, insight,
+    ranking_hbar, dual_line, donut, stacked_hbar, fmt_money,
     con_nombres_estado, PRIMARY, NEGATIVE, ACCENT, POSITIVE,
 )
 
@@ -49,11 +49,6 @@ with col_izq:
                      color=NEGATIVE, height=380),
         use_container_width=True,
     )
-    insight(
-        "Los estados donde un mayor porcentaje de órdenes llega después de la "
-        "fecha estimada. Cuanto más larga la barra, más frecuente es el retraso "
-        "en ese estado."
-    )
 
 with col_med:
     st.subheader("Concentración geográfica")
@@ -63,10 +58,6 @@ with col_med:
               delta_color="inverse")
     st.metric("Mejor estado", retrasos.iloc[-1]["estado"],
               f"{retrasos['pct_tardias'].min()}% tardías", delta_color="off")
-    insight(
-        "Compara el estado con más retrasos contra el promedio general del "
-        "país, y muestra cuál es el estado con mejor cumplimiento de entrega."
-    )
 
 with col_der:
     st.subheader("Cumplimiento de entregas")
@@ -77,10 +68,6 @@ with col_der:
               colors=[PRIMARY, ACCENT],
               center_text=f"{k['pct_a_tiempo']}%"),
         use_container_width=True,
-    )
-    insight(
-        "De cada 100 órdenes entregadas, cuántas llegan dentro del plazo "
-        "prometido y cuántas llegan tarde."
     )
 
 st.divider()
@@ -95,11 +82,6 @@ with col_a:
         dual_line(mensual, "mes", "pct_tardias", "dias_prom",
                   "", "% tardías", "Días de entrega"),
         use_container_width=True,
-    )
-    insight(
-        "Cómo evoluciona mes a mes el porcentaje de órdenes tardías junto con "
-        "el tiempo de entrega promedio. Picos que coinciden con fechas como "
-        "Black Friday suelen indicar problemas de capacidad logística."
     )
 
 with col_b:
@@ -118,11 +100,6 @@ with col_b:
                          "height": 400, "yaxis": dict(**grid_style(), range=[0, 5], title="Score promedio"),
                          "xaxis": dict(**grid_style(), title=None)})
     st.plotly_chart(fig, use_container_width=True)
-    insight(
-        "Muestra cómo cae la calificación (de 1 a 5 estrellas) que deja el "
-        "cliente a medida que la entrega se retrasa más. Es la prueba de que "
-        "el retraso afecta directamente la satisfacción."
-    )
 
 with col_c:
     st.subheader("Vendedor vs. transportista")
@@ -134,15 +111,6 @@ with col_c:
                      ["Vendedor", "Transportista"],
                      "", [PRIMARY, ACCENT], "Días promedio"),
         use_container_width=True,
-    )
-    insight(
-        "**Vendedor** = días entre que se aprueba el pago y el vendedor entrega "
-        "el paquete al transportista (tiempo de preparación/despacho). "
-        "**Transportista** = días entre que el transportista recoge el paquete "
-        "y lo entrega al cliente (tiempo de tránsito/reparto). Juntos suman el "
-        "tiempo total de entrega; el color más largo indica dónde está el cuello "
-        "de botella en cada estado — si es 'Vendedor', el problema es de "
-        "despacho; si es 'Transportista', es de distancia o del operador logístico."
     )
 
 st.divider()

@@ -142,16 +142,6 @@ def con_nombres_estado(df, col: str = "estado"):
     return d
 
 
-def insight(texto: str):
-    """Caja de interpretación breve debajo de un gráfico, en lenguaje simple."""
-    st.markdown(
-        f'<div style="background:rgba(124,111,232,0.10); '
-        f'border-left:3px solid #7C6FE8; border-radius:6px; '
-        f'padding:8px 12px; margin:4px 0 2px 0; font-size:0.85rem; opacity:0.92;">'
-        f'💡 {texto}</div>',
-        unsafe_allow_html=True,
-    )
-
 # ------------------------------------------------------------------ Etiquetas ES
 LABELS = {
     "year_month": "Mes",

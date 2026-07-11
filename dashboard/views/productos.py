@@ -4,7 +4,7 @@ import streamlit as st
 
 from utils.bigquery import run_query
 from utils.queries import q_kpis_productos, q_categoria_ranking, q_flete_eficiencia
-from utils.charts import ranking_hbar, diverging_hbar, fmt_money, insight, PRIMARY, ACCENT
+from utils.charts import ranking_hbar, diverging_hbar, fmt_money, PRIMARY, ACCENT
 
 dates  = st.session_state.get("f_dates", ("2016-09-01", "2018-10-31"))
 states = st.session_state.get("f_states", ())
@@ -42,11 +42,6 @@ st.plotly_chart(
                  pct_col="participacion"),
     use_container_width=True,
 )
-insight(
-    "Las categorías que más dinero generan en total. No siempre coincide con "
-    "las más vendidas: una categoría puede vender pocas unidades pero de alto "
-    "valor, y aun así liderar en ingresos."
-)
 
 st.divider()
 
@@ -78,13 +73,8 @@ fig.update_layout(**{**layout_dict(),
 st.plotly_chart(fig, use_container_width=True)
 
 st.caption(
-    f"🟣 Categorías de volumen  ·  🌸 Categorías premium "
+    f"🔵 Categorías de volumen  ·  🔴 Categorías premium "
     f"(valor promedio por unidad sobre R$ {umbral_premium:,.0f})"
-)
-insight(
-    "Compara cuántas unidades se venden de cada categoría (barra) contra "
-    "cuánto vale, en promedio, cada unidad vendida (texto y color). Las moradas "
-    "compiten por volumen; las rosas, por un mayor valor unitario."
 )
 
 st.divider()
@@ -99,11 +89,6 @@ st.plotly_chart(
     use_container_width=True,
 )
 st.caption(
-    f"🟣 Por debajo de la media  ·  🌸 Sobrecosto  ·  "
+    f"🔵 Por debajo de la media  ·  🔴 Sobrecosto  ·  "
     f"{int(k['skus_sin_dimensiones'])} SKUs excluidos por falta de datos"
-)
-insight(
-    "Compara el costo de flete por kilo facturable de cada categoría contra el "
-    "promedio general. Las barras rosas cuestan más de lo normal transportar "
-    "(candidatas a renegociar tarifa); las moradas son más eficientes que la media."
 )

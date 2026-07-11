@@ -7,7 +7,7 @@ from utils.queries import (
     KPIS_GLOBALES, NPS_APROXIMADO, REVENUE_MENSUAL,
     ESTADO_CRECIMIENTO_ALERTAS, RFM_BASE, q_kpis_logistica,
 )
-from utils.charts import line_chart, ranking_hbar, fmt_money, insight, con_nombres_estado
+from utils.charts import line_chart, ranking_hbar, fmt_money, con_nombres_estado
 from utils.ml import segment_customers
 
 FULL_RANGE = ("2016-09-01", "2018-10-31")
@@ -44,22 +44,12 @@ with col_l:
                    "Ingresos mensuales", "Ingresos (R$)"),
         use_container_width=True,
     )
-    insight(
-        "Cuánto dinero entró cada mes por ventas. La tendencia general muestra "
-        "cómo ha ido creciendo el negocio a lo largo del tiempo, con picos en "
-        "fechas comerciales como noviembre (Black Friday)."
-    )
 
 with col_r:
     st.plotly_chart(
         line_chart(monthly, "year_month", "orders",
                    "Pedidos mensuales", "Pedidos"),
         use_container_width=True,
-    )
-    insight(
-        "Cuántos pedidos se hicieron cada mes. Comparado con el gráfico de "
-        "ingresos, permite ver si el crecimiento viene de más clientes "
-        "comprando o de que cada pedido vale más en promedio."
     )
 
 st.divider()
@@ -80,10 +70,6 @@ with col_est:
         ranking_hbar(top10, "ingresos", "estado", "", height=420),
         use_container_width=True,
     )
-    insight(
-        "Los 10 estados que más ingresos generan en todo el período. Es la "
-        "base del negocio: dónde está concentrada la demanda."
-    )
 
 with col_alert:
     st.markdown("**⚠️ Estados en alerta logística**")
@@ -95,10 +81,6 @@ with col_alert:
         for _, r in alertas.head(6).iterrows():
             st.markdown(f"- **{r['estado']}** — {r['pct_tardias']}% de órdenes tardías "
                         f"({fmt_money(r['ingresos'])} en ingresos expuestos)")
-    insight(
-        "Un estado 'en alerta' vende bien pero entrega mal: ese riesgo logístico "
-        "puede terminar dañando la reputación y la retención de esos clientes."
-    )
 
 st.divider()
 
@@ -144,14 +126,6 @@ with s3:
         "y venta cruzada según el perfil identificado."
     )
 
-insight(
-    "Vista ejecutiva de la oportunidad comercial: dónde está el mayor riesgo "
-    "(En Riesgo), dónde está concentrado el valor (Campeones + Leales) y qué "
-    "acción tomar. El detalle completo por segmento — clientes, valor "
-    "individual, centroides RFM y campañas recomendadas — está disponible en "
-    "Segmentación IA."
-)
-
 st.divider()
 
 # ------------------------------------------------------------------ Riesgo logístico
@@ -165,11 +139,6 @@ r1.metric("Calificación en entregas puntuales", f"{log_k['score_a_tiempo']} ⭐
 r2.metric("Calificación en entregas con +15 días de retraso", f"{log_k['score_muy_tarde']} ⭐",
           f"-{log_k['score_a_tiempo'] - log_k['score_muy_tarde']:.2f} vs. a tiempo",
           delta_color="inverse")
-insight(
-    "Muestra el costo real del retraso en la percepción del cliente: cuando la "
-    "entrega llega puntual, la calificación es alta; cuando se retrasa más de "
-    "15 días, cae drásticamente. Ese es el mayor riesgo logístico del negocio."
-)
 
 st.divider()
 

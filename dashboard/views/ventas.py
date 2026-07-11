@@ -9,7 +9,7 @@ from utils.queries import (
 )
 from utils.charts import (
     ranking_hbar, dual_line, donut, fmt_money, QUALITATIVE,
-    con_nombres_estado, insight,
+    con_nombres_estado,
 )
 
 dates  = st.session_state.get("f_dates", ("2016-09-01", "2018-10-31"))
@@ -48,11 +48,6 @@ with col_izq:
                      pct_col="participacion"),
         use_container_width=True,
     )
-    insight(
-        "Muestra los 5 estados que más ingresos generan y qué porcentaje del "
-        "total representa cada uno. Ayuda a ver dónde está concentrado el negocio "
-        "y dónde hay oportunidad de crecer."
-    )
     with st.expander("Ver todos los estados"):
         st.dataframe(
             estados_df, use_container_width=True, hide_index=True,
@@ -80,17 +75,11 @@ with col_der:
               f"R$ {una['ltv_recurrente']:,.0f}",
               f"+{(una['ltv_recurrente']/una['ltv_una']-1)*100:.0f}%",
               delta_color="off")
-    insight(
-        "El estado líder concentra el mayor porcentaje de ingresos, mientras "
-        "que el de mayor valor promedio por orden no siempre es el mismo. "
-        "Abajo: qué tan grande es el problema de que un cliente compre una sola "
-        "vez y cuánto vale, en promedio, un cliente que sí regresa a comprar."
-    )
 
 st.divider()
 
 # ------------------------------------------------------------------ Fila secundaria
-col_a, col_b, col_c = st.columns([3, 2, 2])
+col_a, col_c = st.columns([3, 2])
 
 with col_a:
     st.subheader("Evolución de ingresos y órdenes")
@@ -99,26 +88,6 @@ with col_a:
         dual_line(evo, "mes", "ingresos", "ordenes",
                   "", "Ingresos (R$)", "Órdenes"),
         use_container_width=True,
-    )
-    insight(
-        "Compara mes a mes cómo crecen (o caen) los ingresos junto con la "
-        "cantidad de órdenes. Si ambas líneas suben juntas, el crecimiento es "
-        "sano; si los ingresos suben pero las órdenes no, el ticket promedio "
-        "está creciendo."
-    )
-
-with col_b:
-    st.subheader("Top 5 categorías")
-    cats = run_query(q_top_categorias(dates, states, 5))
-    cats["participacion"] = 100 * cats["ingresos"] / k["ingresos"]
-    st.plotly_chart(
-        ranking_hbar(cats, "ingresos", "categoria", "",
-                     pct_col="participacion", height=400),
-        use_container_width=True,
-    )
-    insight(
-        "Las 5 categorías de producto que más ingresos generan. Útil para "
-        "saber dónde priorizar inventario y campañas de marketing."
     )
 
 with col_c:
@@ -133,8 +102,15 @@ with col_c:
     pct_dom = 100 * dom["valor"] / pagos["valor"].sum()
     st.metric(dom["metodo"], f"{pct_dom:.1f}% del valor total",
               f"{dom['cuotas_prom']:.1f} cuotas prom.", delta_color="off")
-    insight(
-        "Cómo se reparte el valor de las ventas entre los distintos métodos "
-        "de pago, y en cuántas cuotas suele pagar el cliente con el método "
-        "más usado."
-    )
+
+st.divider()
+
+# ------------------------------------------------------------------ Top 5 categorías (a todo el ancho)
+st.subheader("Top 5 categorías")
+cats = run_query(q_top_categorias(dates, states, 5))
+cats["participacion"] = 100 * cats["ingresos"] / k["ingresos"]
+st.plotly_chart(
+    ranking_hbar(cats, "ingresos", "categoria", "",
+                 pct_col="participacion", height=340),
+    use_container_width=True,
+)

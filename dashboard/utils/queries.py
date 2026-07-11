@@ -306,6 +306,8 @@ def q_metodos_pago(dates, states):
     from `{MARTS}.fct_payments` pay
     join `{MARTS}.dim_customers` c on pay.customer_key = c.customer_key
     where pay.order_date_key between '{dates[0]}' and '{dates[1]}'{_fstates(states)}
+        and pay.payment_type is not null
+        and pay.payment_value > 0
     group by 1 order by valor desc
     """
 
